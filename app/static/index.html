@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus RAG | Enterprise AI Document Assistant</title>
+  <meta name="description" content="Production Enterprise Retrieval-Augmented Generation (RAG) Platform with verified citations, hybrid vector search, and multi-tenant isolation.">
+  
+  <!-- Modern Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Highlight.js for code syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  
+  <!-- Marked.js for Markdown parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- DOMPurify for security -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="dark-theme">
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Main Application Wrapper -->
+  <div id="app" class="app-layout">
+    
+    <!-- Left Navigation Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-icon">
+            <i data-lucide="sparkles"></i>
+          </div>
+          <div class="brand-text">
+            <h2>Nexus<span>RAG</span></h2>
+            <span class="badge-version">Enterprise v1.0</span>
+          </div>
+        </div>
+        <button id="sidebar-toggle-btn" class="icon-btn sidebar-collapse-btn" title="Collapse sidebar">
+          <i data-lucide="panel-left-close"></i>
+        </button>
+      </div>
+
+      <!-- Action Button -->
+      <div class="sidebar-action">
+        <button id="new-chat-btn" class="btn btn-primary btn-block">
+          <i data-lucide="plus-circle"></i>
+          <span>New Chat</span>
+        </button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">WORKSPACE</div>
+        <ul class="nav-list">
+          <li class="nav-item active" data-tab="chat">
+            <button class="nav-link">
+              <i data-lucide="message-square"></i>
+              <span>Chat with Docs</span>
+            </button>
+          </li>
+          <li class="nav-item" data-tab="search">
+            <button class="nav-link">
+              <i data-lucide="search"></i>
+              <span>Semantic Search</span>
+            </button>
+          </li>
+          <li class="nav-item" data-tab="documents">
+            <button class="nav-link">
+              <i data-lucide="files"></i>
+              <span>Knowledge Base</span>
+              <span id="doc-counter-badge" class="nav-badge">0</span>
+            </button>
+          </li>
+          <li class="nav-item" data-tab="settings">
+            <button class="nav-link">
+              <i data-lucide="settings-2"></i>
+              <span>Engine Settings</span>
+            </button>
+          </li>
+        </ul>
+
+        <!-- Chat History List -->
+        <div class="nav-section-title">
+          <span>CONVERSATION HISTORY</span>
+          <button id="clear-chats-btn" class="icon-btn-tiny" title="Clear non-active chats">
+            <i data-lucide="history"></i>
+          </button>
+        </div>
+        <div id="conversations-list" class="conversations-list">
+          <div class="empty-history-text">No conversations yet</div>
+        </div>
+      </nav>
+
+      <!-- Sidebar Footer / User Profile -->
+      <div class="sidebar-footer">
+        <div class="user-profile-card">
+          <div class="user-avatar" id="user-avatar-initials">EX</div>
+          <div class="user-meta">
+            <span id="user-display-name" class="user-name">Guest User</span>
+            <span id="user-role-badge" class="user-role">Evaluator Mode</span>
+          </div>
+          <button id="auth-action-btn" class="icon-btn" title="Sign In / Register">
+            <i data-lucide="log-in" id="auth-action-icon"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Navbar -->
+      <header class="top-navbar">
+        <div class="navbar-left">
+          <button id="sidebar-mobile-toggle" class="icon-btn mobile-menu-btn" title="Open Menu">
+            <i data-lucide="menu"></i>
+          </button>
+          <div class="active-tab-indicator">
+            <h1 id="page-title">Chat with Documents</h1>
+            <span class="active-doc-scope" id="active-doc-scope">
+              <i data-lucide="layers"></i> All Indexed Documents
+            </span>
+          </div>
+        </div>
+
+        <div class="navbar-right">
+          <!-- Engine Status Pill -->
+          <div class="engine-status-pill" id="engine-status-pill" title="Click to configure LLM settings">
+            <span class="pulse-indicator"></span>
+            <span id="engine-status-name">Smart Local Engine</span>
+          </div>
+
+          <!-- Quick Sample Docs Button -->
+          <button id="quick-load-samples-btn" class="btn btn-secondary btn-sm" title="Load sample enterprise PDFs for instant testing">
+            <i data-lucide="file-plus-2"></i>
+            <span>Load Demo PDFs</span>
+          </button>
+
+          <!-- Theme Toggle -->
+          <button id="theme-toggle-btn" class="icon-btn" title="Toggle Theme">
+            <i data-lucide="sun"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Tab Panels Container -->
+      <div class="tab-panels-wrapper">
+        
+        <!-- ==================== TAB 1: CHAT WITH DOCUMENTS ==================== -->
+        <section id="tab-chat" class="tab-panel active">
+          <div class="chat-container">
+            
+            <!-- Chat Messages Scroll Area -->
+            <div id="chat-messages" class="chat-messages">
+              <!-- Welcome State Hero -->
+              <div id="chat-welcome-state" class="welcome-hero">
+                <div class="hero-badge">
+                  <i data-lucide="shield-check"></i>
+                  <span>Zero-Hallucination Verified RAG</span>
+                </div>
+                <h2>Ask anything about your enterprise documents</h2>
+                <p>Upload corporate PDFs, technical manuals, or financial audits. Every answer is synthesized with transparent citations and direct page verification.</p>
+                
+                <div class="sample-queries-grid">
+                  <button class="sample-query-card" data-prompt="What are Acme's hardware MFA requirements and IAM session timeouts?">
+                    <span class="card-icon"><i data-lucide="lock"></i></span>
+                    <span class="card-text">"What are Acme's hardware MFA requirements and IAM timeouts?"</span>
+                  </button>
+                  <button class="sample-query-card" data-prompt="What were NexusTech's Q3 ARR, gross margin, and customer growth?">
+                    <span class="card-icon"><i data-lucide="trending-up"></i></span>
+                    <span class="card-text">"What were NexusTech's Q3 ARR, gross margin, and customer growth?"</span>
+                  </button>
+                  <button class="sample-query-card" data-prompt="What is the Incident Response SLA for P0 and P1 critical security events?">
+                    <span class="card-icon"><i data-lucide="alert-triangle"></i></span>
+                    <span class="card-text">"What is the Incident Response SLA for P0 and P1 critical events?"</span>
+                  </button>
+                  <button class="sample-query-card" data-prompt="What are the data encryption standards at rest and in transit?">
+                    <span class="card-icon"><i data-lucide="key"></i></span>
+                    <span class="card-text">"What are the data encryption standards at rest and in transit?"</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chat Input Area -->
+            <div class="chat-input-container">
+              <form id="chat-form" class="chat-form">
+                <div class="input-glass-box">
+                  <div class="input-toolbar">
+                    <div class="doc-filter-dropdown-wrapper">
+                      <select id="chat-doc-filter" class="doc-filter-select" title="Scope query to specific document">
+                        <option value="">🔍 Search All Documents</option>
+                      </select>
+                    </div>
+                    <div class="citation-hint">
+                      <i data-lucide="check-circle-2"></i> Verified citations enabled
+                    </div>
+                  </div>
+
+                  <div class="textarea-wrapper">
+                    <textarea 
+                      id="chat-input" 
+                      placeholder="Ask a question about your documents... (Shift+Enter for new line)"
+                      rows="2"
+                    ></textarea>
+                    
+                    <button type="submit" id="send-msg-btn" class="btn btn-primary send-btn" title="Send Question">
+                      <i data-lucide="send"></i>
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ==================== TAB 2: SEMANTIC SEARCH ==================== -->
+        <section id="tab-search" class="tab-panel">
+          <div class="search-view-container">
+            <div class="view-header">
+              <h2>Direct Semantic & Hybrid Vector Search</h2>
+              <p>Explore raw similarity scores, lexical BM25 matching, and exact chunk passages retrieved by the RAG embedding engine.</p>
+            </div>
+
+            <!-- Search Controls Box -->
+            <div class="search-controls-card">
+              <form id="semantic-search-form" class="search-form-row">
+                <div class="search-input-field">
+                  <i data-lucide="search" class="search-input-icon"></i>
+                  <input type="text" id="semantic-search-input" placeholder="Type a search query (e.g. 'encryption at rest AES-256', 'operating expenditures')...">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  <i data-lucide="search"></i>
+                  <span>Search Chunks</span>
+                </button>
+              </form>
+
+              <div class="search-filters-row">
+                <div class="filter-item">
+                  <label for="search-top-k">Top Results (K):</label>
+                  <select id="search-top-k" class="custom-select-sm">
+                    <option value="3">3 Chunks</option>
+                    <option value="5" selected>5 Chunks</option>
+                    <option value="8">8 Chunks</option>
+                    <option value="12">12 Chunks</option>
+                  </select>
+                </div>
+                <div class="filter-item slider-filter">
+                  <label for="search-alpha">Dense Vector vs Lexical Weight: <span id="alpha-val-display">70% Vector / 30% Keyword</span></label>
+                  <input type="range" id="search-alpha" min="0" max="1" step="0.1" value="0.7">
+                </div>
+              </div>
+            </div>
+
+            <!-- Search Results Display -->
+            <div id="search-results-stats" class="search-results-meta" style="display: none;">
+              <span id="results-count-text">0 results</span>
+              <span id="results-latency-text">0 ms</span>
+            </div>
+
+            <div id="search-results-list" class="search-results-grid">
+              <div class="empty-state-search">
+                <i data-lucide="compass"></i>
+                <h3>No search conducted yet</h3>
+                <p>Enter a query above to see ranked vector matches with page numbers and confidence percentages.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== TAB 3: KNOWLEDGE BASE (DOCUMENTS) ==================== -->
+        <section id="tab-documents" class="tab-panel">
+          <div class="docs-view-container">
+            <div class="view-header-flex">
+              <div>
+                <h2>Enterprise Knowledge Vault</h2>
+                <p>Manage ingested PDF documents, inspect vector chunks, and monitor extraction status.</p>
+              </div>
+              <button id="load-samples-vault-btn" class="btn btn-secondary">
+                <i data-lucide="folder-down"></i>
+                <span>Load Sample Enterprise PDFs</span>
+              </button>
+            </div>
+
+            <!-- Upload Dropzone -->
+            <div id="pdf-dropzone" class="upload-dropzone">
+              <input type="file" id="pdf-file-input" accept=".pdf" style="display: none;">
+              <div class="dropzone-content">
+                <div class="dropzone-icon">
+                  <i data-lucide="file-up"></i>
+                </div>
+                <h3>Drag & drop corporate PDF files here</h3>
+                <p>Supports multi-page enterprise reports, compliance manuals, and technical documents (up to 50MB).</p>
+                <button type="button" class="btn btn-outline" id="browse-files-btn">
+                  <i data-lucide="upload"></i> Browse Files
+                </button>
+              </div>
+              <div id="upload-progress-container" class="upload-progress-container" style="display: none;">
+                <div class="progress-bar-wrapper">
+                  <div id="upload-progress-fill" class="progress-bar-fill"></div>
+                </div>
+                <span id="upload-progress-text">Processing document & computing embeddings...</span>
+              </div>
+            </div>
+
+            <!-- Documents Grid -->
+            <div class="docs-table-header">
+              <h3>Indexed Documents (<span id="total-docs-count">0</span>)</h3>
+              <button id="refresh-docs-btn" class="icon-btn-tiny" title="Refresh documents">
+                <i data-lucide="refresh-cw"></i>
+              </button>
+            </div>
+
+            <div id="documents-grid" class="documents-grid">
+              <div class="empty-state-docs">
+                <i data-lucide="file-text"></i>
+                <h3>No documents indexed yet</h3>
+                <p>Upload your own PDF files or click "Load Sample Enterprise PDFs" to test with pre-built documents.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== TAB 4: SETTINGS ==================== -->
+        <section id="tab-settings" class="tab-panel">
+          <div class="settings-view-container">
+            <div class="view-header">
+              <h2>Engine & Model Settings</h2>
+              <p>Configure LLM inference providers, custom API keys, and retrieval parameters.</p>
+            </div>
+
+            <form id="settings-form" class="settings-form">
+              <!-- LLM Provider Selection -->
+              <div class="settings-card">
+                <h3><i data-lucide="cpu"></i> LLM Inference Engine</h3>
+                <p class="settings-hint">Select the model provider used to synthesize answers from retrieved document contexts.</p>
+                
+                <div class="provider-radio-group">
+                  <label class="provider-card">
+                    <input type="radio" name="llm_provider" value="smart_local" checked>
+                    <div class="provider-card-inner">
+                      <div class="provider-badge">Zero Cost</div>
+                      <div class="provider-title">Smart Local Synthesizer</div>
+                      <div class="provider-desc">Built-in extractive RAG engine. Instant, zero API keys required, ideal for evaluation.</div>
+                    </div>
+                  </label>
+
+                  <label class="provider-card">
+                    <input type="radio" name="llm_provider" value="gemini">
+                    <div class="provider-card-inner">
+                      <div class="provider-badge highlight">Recommended</div>
+                      <div class="provider-title">Google Gemini (Flash/Pro)</div>
+                      <div class="provider-desc">State-of-the-art reasoning with free tier from Google AI Studio.</div>
+                    </div>
+                  </label>
+
+                  <label class="provider-card">
+                    <input type="radio" name="llm_provider" value="openai">
+                    <div class="provider-card-inner">
+                      <div class="provider-badge">Advanced</div>
+                      <div class="provider-title">OpenAI (GPT-4o Mini)</div>
+                      <div class="provider-desc">High precision synthesis and structured citations via OpenAI API.</div>
+                    </div>
+                  </label>
+
+                  <label class="provider-card">
+                    <input type="radio" name="llm_provider" value="groq">
+                    <div class="provider-card-inner">
+                      <div class="provider-badge">Ultra-Fast</div>
+                      <div class="provider-title">Groq (Llama 3.1 / 3.3)</div>
+                      <div class="provider-desc">Blazing 500+ tokens/second inference speed with open weights models.</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- API Keys Section -->
+              <div class="settings-card">
+                <h3><i data-lucide="key-round"></i> API Credentials</h3>
+                <p class="settings-hint">Your API keys are stored securely in your session and never logged or exposed.</p>
+                
+                <div class="form-group">
+                  <label for="setting-gemini-key">Google Gemini API Key:</label>
+                  <div class="input-with-action">
+                    <input type="password" id="setting-gemini-key" placeholder="Enter AIzaSy... or leave blank if set via .env">
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="input-link">Get Free Key</a>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="setting-openai-key">OpenAI API Key:</label>
+                  <div class="input-with-action">
+                    <input type="password" id="setting-openai-key" placeholder="Enter sk-... or leave blank if set via .env">
+                    <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" class="input-link">Get Key</a>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="setting-groq-key">Groq Cloud API Key:</label>
+                  <div class="input-with-action">
+                    <input type="password" id="setting-groq-key" placeholder="Enter gsk_... or leave blank if set via .env">
+                    <a href="https://console.groq.com/keys" target="_blank" rel="noopener" class="input-link">Get Free Key</a>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Retrieval Parameters -->
+              <div class="settings-card">
+                <h3><i data-lucide="sliders"></i> Retrieval Configuration</h3>
+                
+                <div class="form-group-row">
+                  <div class="form-group">
+                    <label for="setting-top-k">Top Chunks Retrieved (K):</label>
+                    <input type="number" id="setting-top-k" min="1" max="10" value="4">
+                    <span class="field-subtext">Number of source chunks passed into the LLM context prompt.</span>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="setting-embed-provider">Embedding Engine:</label>
+                    <select id="setting-embed-provider" class="custom-select">
+                      <option value="local_dense">Local Dense Feature Vectors (Instant, 0-cost)</option>
+                      <option value="gemini">Google Gemini text-embedding-004</option>
+                      <option value="openai">OpenAI text-embedding-3-small</option>
+                    </select>
+                    <span class="field-subtext">Used to index uploaded PDFs and compute query vectors.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                  <i data-lucide="save"></i>
+                  <span>Save Engine Settings</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- Slide-over Citation Drawer -->
+    <aside id="citation-drawer" class="citation-drawer" aria-hidden="true">
+      <div class="drawer-header">
+        <div class="drawer-title">
+          <i data-lucide="bookmark-check"></i>
+          <h3>Verified Source Citation</h3>
+        </div>
+        <button id="close-drawer-btn" class="icon-btn" title="Close drawer">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="drawer-content">
+        <div class="citation-meta-card">
+          <div class="meta-row">
+            <span class="meta-label">Document:</span>
+            <span id="drawer-doc-name" class="meta-val">Sample_Document.pdf</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Page Number:</span>
+            <span id="drawer-page-num" class="meta-badge">Page 1</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Relevance Confidence:</span>
+            <span id="drawer-confidence" class="confidence-badge">94% Match</span>
+          </div>
+        </div>
+
+        <div class="drawer-section">
+          <h4>Cited Excerpt from Document:</h4>
+          <div id="drawer-excerpt-text" class="drawer-quote-box">
+            Loading citation excerpt...
+          </div>
+        </div>
+
+        <div class="drawer-section">
+          <h4>Document Chunk Verification:</h4>
+          <div id="drawer-chunk-details" class="drawer-chunk-details">
+            <p>This passage was matched via cosine vector similarity and lexical BM25 token alignment.</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Modal: Document Chunks Inspector -->
+  <dialog id="chunks-modal" class="custom-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="file-code"></i>
+          <h3 id="modal-doc-title">Document Chunks Inspector</h3>
+        </div>
+        <button id="close-chunks-modal-btn" class="icon-btn">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="modal-chunks-list" class="modal-chunks-list">
+          <!-- Chunks loaded dynamically -->
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modal: Authentication (Sign In / Register / Guest Demo) -->
+  <dialog id="auth-modal" class="custom-modal">
+    <div class="modal-card auth-modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="shield"></i>
+          <h3 id="auth-modal-title">Sign In to Nexus RAG</h3>
+        </div>
+        <button id="close-auth-modal-btn" class="icon-btn">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- 1-Click Guest Access Banner for Employers -->
+        <div class="guest-banner">
+          <div class="guest-banner-text">
+            <strong>Evaluating or Hiring?</strong>
+            <span>Test the full enterprise app in 1 click without entering an email.</span>
+          </div>
+          <button id="guest-login-btn" class="btn btn-accent btn-sm">
+            <i data-lucide="zap"></i>
+            <span>1-Click Demo Login</span>
+          </button>
+        </div>
+
+        <div class="auth-divider">
+          <span>OR CONTINUE WITH ACCOUNT</span>
+        </div>
+
+        <form id="auth-form" class="auth-form">
+          <div id="auth-fullname-group" class="form-group" style="display: none;">
+            <label for="auth-fullname">Full Name:</label>
+            <input type="text" id="auth-fullname" placeholder="Alex Morgan">
+          </div>
+
+          <div class="form-group">
+            <label for="auth-username">Username:</label>
+            <input type="text" id="auth-username" required placeholder="alex_evaluator">
+          </div>
+
+          <div id="auth-email-group" class="form-group" style="display: none;">
+            <label for="auth-email">Corporate Email:</label>
+            <input type="email" id="auth-email" placeholder="alex@enterprise.com">
+          </div>
+
+          <div class="form-group">
+            <label for="auth-password">Password:</label>
+            <input type="password" id="auth-password" required placeholder="••••••••">
+          </div>
+
+          <button type="submit" id="auth-submit-btn" class="btn btn-primary btn-block">
+            <span>Sign In</span>
+          </button>
+        </form>
+
+        <div class="auth-switch-prompt">
+          <span id="auth-switch-text">Don't have an account?</span>
+          <button id="auth-toggle-mode-btn" class="text-link">Register New Account</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Application Scripts -->
+  <script src="/static/js/app.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/documents.js"></script>
+  <script src="/static/js/chat.js"></script>
+  <script src="/static/js/search.js"></script>
+  <script src="/static/js/settings.js"></script>
+</body>
+</html>
