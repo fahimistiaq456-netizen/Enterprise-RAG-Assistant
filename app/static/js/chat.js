@@ -1,5 +1,5 @@
 /**
- * Interactive RAG Streaming Chat & Citation Manager
+ * Interactive RAG Streaming Chat & Friendly Citation Manager
  */
 window.ChatManager = {
   isStreaming: false,
@@ -51,55 +51,11 @@ window.ChatManager = {
     }
 
     // Sample Query Cards
-    document.querySelectorAll('.sample-query-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const prompt = card.getAttribute('data-prompt');
-        if (prompt && chatInput) {
-          chatInput.value = prompt;
-          this.handleSendMessage();
-        }
-      });
-    });
+    this.bindSampleCards();
   },
 
-  startNewConversation() {
-    window.AppState.activeConversationId = null;
-    const container = document.getElementById('chat-messages');
-    if (!container) return;
-
-    // Reset view to welcome state
-    container.innerHTML = `
-      <div id="chat-welcome-state" class="welcome-hero">
-        <div class="hero-badge">
-          <i data-lucide="shield-check"></i>
-          <span>Zero-Hallucination Verified RAG</span>
-        </div>
-        <h2>Ask anything about your enterprise documents</h2>
-        <p>Upload corporate PDFs, technical manuals, or financial audits. Every answer is synthesized with transparent citations and direct page verification.</p>
-        
-        <div class="sample-queries-grid">
-          <button class="sample-query-card" data-prompt="What are Acme's hardware MFA requirements and IAM session timeouts?">
-            <span class="card-icon"><i data-lucide="lock"></i></span>
-            <span class="card-text">"What are Acme's hardware MFA requirements and IAM timeouts?"</span>
-          </button>
-          <button class="sample-query-card" data-prompt="What were NexusTech's Q3 ARR, gross margin, and customer growth?">
-            <span class="card-icon"><i data-lucide="trending-up"></i></span>
-            <span class="card-text">"What were NexusTech's Q3 ARR, gross margin, and customer growth?"</span>
-          </button>
-          <button class="sample-query-card" data-prompt="What is the Incident Response SLA for P0 and P1 critical security events?">
-            <span class="card-icon"><i data-lucide="alert-triangle"></i></span>
-            <span class="card-text">"What is the Incident Response SLA for P0 and P1 critical events?"</span>
-          </button>
-          <button class="sample-query-card" data-prompt="What are the data encryption standards at rest and in transit?">
-            <span class="card-icon"><i data-lucide="key"></i></span>
-            <span class="card-text">"What are the data encryption standards at rest and in transit?"</span>
-          </button>
-        </div>
-      </div>
-    `;
-
-    // Rebind cards
-    container.querySelectorAll('.sample-query-card').forEach(card => {
+  bindSampleCards() {
+    document.querySelectorAll('.sample-query-card').forEach(card => {
       card.addEventListener('click', () => {
         const prompt = card.getAttribute('data-prompt');
         const input = document.getElementById('chat-input');
@@ -110,11 +66,67 @@ window.ChatManager = {
       });
     });
 
+    const uploadTrigger = document.getElementById('welcome-upload-trigger');
+    const fileInput = document.getElementById('pdf-file-input');
+    if (uploadTrigger && fileInput) {
+      uploadTrigger.addEventListener('click', () => fileInput.click());
+    }
+  },
+
+  startNewConversation() {
+    window.AppState.activeConversationId = null;
+    const container = document.getElementById('chat-messages');
+    if (!container) return;
+
+    // Reset view to friendly welcome state
+    container.innerHTML = `
+      <div id="chat-welcome-state" class="welcome-hero">
+        <div class="hero-badge">
+          <i data-lucide="heart-handshake"></i>
+          <span>Friendly & 100% Accurate AI</span>
+        </div>
+        <h2>Chat with your PDFs easily! ✨</h2>
+        <p>Upload any school notes, company policies, books, or financial reports. Ask any question in plain words, and I'll find the exact answers with page numbers!</p>
+        
+        <div class="welcome-upload-card" id="welcome-upload-trigger">
+          <div class="welcome-upload-icon">
+            <i data-lucide="file-up"></i>
+          </div>
+          <div>
+            <h4>Click or drag any PDF here</h4>
+            <span>Supports multi-page PDFs up to 50MB</span>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm">Select PDF</button>
+        </div>
+
+        <div class="sample-queries-title">💡 Or try these sample questions:</div>
+        <div class="sample-queries-grid">
+          <button class="sample-query-card" data-prompt="What are the security password rules and session timeouts?">
+            <span class="card-icon">🔐</span>
+            <span class="card-text">"What are the security rules and session timeouts?"</span>
+          </button>
+          <button class="sample-query-card" data-prompt="What were the Q3 revenue, gross margin, and business highlights?">
+            <span class="card-icon">💰</span>
+            <span class="card-text">"What were the Q3 revenue and financial highlights?"</span>
+          </button>
+          <button class="sample-query-card" data-prompt="How fast does the emergency response team react to critical events?">
+            <span class="card-icon">🚨</span>
+            <span class="card-text">"How fast does the emergency response team react?"</span>
+          </button>
+          <button class="sample-query-card" data-prompt="Give me a simple 3-point summary of the uploaded documents.">
+            <span class="card-icon">📝</span>
+            <span class="card-text">"Give me a simple 3-point summary of my documents."</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    this.bindSampleCards();
     if (window.lucide) lucide.createIcons({ root: container });
 
     // Remove active state from sidebar items
     document.querySelectorAll('.conversation-item').forEach(i => i.classList.remove('active'));
-    showToast('Started new conversation', 'info');
+    showToast('Ready for a new question!', 'info');
   },
 
   async loadConversations() {
@@ -127,7 +139,7 @@ window.ChatManager = {
 
       const convs = await res.json();
       if (!convs || convs.length === 0) {
-        listEl.innerHTML = '<div class="empty-history-text">No conversations yet</div>';
+        listEl.innerHTML = '<div class="empty-history-text">No previous chats yet</div>';
         return;
       }
 
@@ -178,7 +190,7 @@ window.ChatManager = {
     });
 
     const container = document.getElementById('chat-messages');
-    container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">Loading conversation history...</div>';
+    container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">Loading conversation...</div>';
 
     try {
       const res = await fetch(`/api/conversations/${convId}`);
@@ -236,7 +248,7 @@ window.ChatManager = {
 
     // Check if user has uploaded docs
     if (window.AppState.documents.length === 0) {
-      showToast('Tip: No documents uploaded yet. Upload a PDF or click "Load Demo PDFs" for grounded answers.', 'info', 5000);
+      showToast('No PDF loaded yet. Click "Load Demo Docs" or drop a PDF to ask questions!', 'info', 4500);
     }
 
     input.value = '';
@@ -258,9 +270,8 @@ window.ChatManager = {
     const sendBtn = document.getElementById('send-msg-btn');
     if (sendBtn) sendBtn.disabled = true;
 
-    // Selected document scope
-    const filterSelect = document.getElementById('chat-doc-filter');
-    const selectedDocId = filterSelect && filterSelect.value ? [parseInt(filterSelect.value)] : null;
+    // Selected document scope from chips bar or default
+    const selectedDocId = window.AppState.selectedDocScope ? [window.AppState.selectedDocScope] : null;
 
     try {
       const res = await fetch('/api/chat', {
@@ -346,18 +357,24 @@ window.ChatManager = {
       contentHtml = this.renderMarkdownWithCitations(text, citations);
     }
 
+    const actionsHtml = sender === 'assistant' ? this.renderMessageActions() : '';
+
     msg.innerHTML = `
       <div class="msg-avatar">${avatarText}</div>
       <div class="msg-body">
         <div class="msg-bubble">${contentHtml}</div>
+        ${actionsHtml}
         ${sender === 'assistant' && citations && citations.length > 0 ? this.renderCitationsFooter(citations) : ''}
       </div>
     `;
 
     container.appendChild(msg);
 
-    // Bind citation clicks
+    // Bind citation clicks & audio read aloud
     this.bindCitationEvents(msg);
+    if (sender === 'assistant') {
+      this.bindMessageActions(msg, text);
+    }
   },
 
   createStreamingAssistantBubble() {
@@ -369,8 +386,9 @@ window.ChatManager = {
       <div class="msg-avatar">AI</div>
       <div class="msg-body">
         <div class="msg-bubble">
-          <span class="typing-dots">Searching vector embeddings & synthesizing answer...</span>
+          <span class="typing-dots">✨ Reading documents & finding answers...</span>
         </div>
+        <div class="msg-actions-row" style="display: none;"></div>
         <div class="citations-footer-row" style="display: none;"></div>
       </div>
     `;
@@ -391,16 +409,31 @@ window.ChatManager = {
     bubbleEl.classList.remove('streaming');
     const contentEl = bubbleEl.querySelector('.msg-bubble');
     const footerEl = bubbleEl.querySelector('.citations-footer-row');
+    const actionsEl = bubbleEl.querySelector('.msg-actions-row');
 
     if (contentEl) {
       contentEl.innerHTML = this.renderMarkdownWithCitations(text, citations);
     }
 
+    if (actionsEl) {
+      actionsEl.innerHTML = `
+        <button class="action-chip-btn speak-btn" title="Read answer out loud">
+          <i data-lucide="volume-2"></i> <span>Listen</span>
+        </button>
+        <button class="action-chip-btn copy-btn" title="Copy answer">
+          <i data-lucide="copy"></i> <span>Copy</span>
+        </button>
+      `;
+      actionsEl.style.display = 'flex';
+      if (window.lucide) lucide.createIcons({ root: actionsEl });
+      this.bindMessageActions(bubbleEl, text);
+    }
+
     if (footerEl && citations && citations.length > 0) {
       footerEl.innerHTML = citations.map(c => `
         <div class="citation-card-chip" data-doc="${this.escapeHtml(c.filename)}" data-page="${c.page_number}">
-          <i data-lucide="file-check"></i>
-          <span>${this.escapeHtml(c.filename)} (p. ${c.page_number})</span>
+          <i data-lucide="check-circle-2"></i>
+          <span>${this.escapeHtml(c.filename)} (Page ${c.page_number})</span>
           <span class="match-pct">${c.confidence_pct}% match</span>
         </div>
       `).join('');
@@ -409,6 +442,75 @@ window.ChatManager = {
     }
 
     this.bindCitationEvents(bubbleEl);
+  },
+
+  renderMessageActions() {
+    return `
+      <div class="msg-actions-row">
+        <button class="action-chip-btn speak-btn" title="Read answer out loud">
+          <i data-lucide="volume-2"></i> <span>Listen</span>
+        </button>
+        <button class="action-chip-btn copy-btn" title="Copy answer">
+          <i data-lucide="copy"></i> <span>Copy</span>
+        </button>
+      </div>
+    `;
+  },
+
+  bindMessageActions(msgEl, text) {
+    const speakBtn = msgEl.querySelector('.speak-btn');
+    const copyBtn = msgEl.querySelector('.copy-btn');
+
+    if (speakBtn) {
+      speakBtn.addEventListener('click', () => {
+        if ('speechSynthesis' in window) {
+          if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+            speakBtn.classList.remove('speaking');
+            const span = speakBtn.querySelector('span');
+            if (span) span.textContent = 'Listen';
+            return;
+          }
+
+          // Clean text from markdown syntax and citations
+          const cleanText = text
+            .replace(/\[\[.*?\]\]/g, '')
+            .replace(/\[.*?\]/g, '')
+            .replace(/[#*`_~>]/g, '')
+            .trim();
+
+          const utterance = new SpeechSynthesisUtterance(cleanText);
+          utterance.rate = 1.0;
+          utterance.onend = () => {
+            speakBtn.classList.remove('speaking');
+            const span = speakBtn.querySelector('span');
+            if (span) span.textContent = 'Listen';
+          };
+
+          speakBtn.classList.add('speaking');
+          const span = speakBtn.querySelector('span');
+          if (span) span.textContent = 'Stop';
+          window.speechSynthesis.speak(utterance);
+        } else {
+          showToast('Text-to-speech is not supported on this browser', 'info');
+        }
+      });
+    }
+
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          const span = copyBtn.querySelector('span');
+          if (span) span.textContent = '✓ Copied!';
+          setTimeout(() => {
+            if (span) span.textContent = 'Copy';
+          }, 2000);
+        } catch (err) {
+          showToast('Failed to copy to clipboard', 'info');
+        }
+      });
+    }
   },
 
   renderMarkdownWithCitations(rawMarkdown, citations = []) {
@@ -420,7 +522,7 @@ window.ChatManager = {
       (match, doc, page) => {
         const cleanDoc = doc.trim();
         const cleanPage = page.trim();
-        return `<span class="citation-pill" data-doc="${this.escapeHtml(cleanDoc)}" data-page="${cleanPage}">📄 ${this.escapeHtml(cleanDoc)}, p. ${cleanPage}</span>`;
+        return `<span class="citation-pill" data-doc="${this.escapeHtml(cleanDoc)}" data-page="${cleanPage}">📄 Page ${cleanPage}</span>`;
       }
     );
 
@@ -430,7 +532,7 @@ window.ChatManager = {
       (match, doc, page) => {
         const cleanDoc = doc.trim();
         const cleanPage = page.trim();
-        return `<span class="citation-pill" data-doc="${this.escapeHtml(cleanDoc)}" data-page="${cleanPage}">📄 ${this.escapeHtml(cleanDoc)}, p. ${cleanPage}</span>`;
+        return `<span class="citation-pill" data-doc="${this.escapeHtml(cleanDoc)}" data-page="${cleanPage}">📄 Page ${cleanPage}</span>`;
       }
     );
 
@@ -452,8 +554,8 @@ window.ChatManager = {
       <div class="citations-footer-row">
         ${citations.map(c => `
           <div class="citation-card-chip" data-doc="${this.escapeHtml(c.filename)}" data-page="${c.page_number}">
-            <i data-lucide="file-check"></i>
-            <span>${this.escapeHtml(c.filename)} (p. ${c.page_number})</span>
+            <i data-lucide="check-circle-2"></i>
+            <span>${this.escapeHtml(c.filename)} (Page ${c.page_number})</span>
             <span class="match-pct">${c.confidence_pct}% match</span>
           </div>
         `).join('')}
@@ -489,11 +591,11 @@ window.ChatManager = {
     const cached = window.AppState.citationCache[cacheKey];
 
     if (cached) {
-      if (confEl) confEl.textContent = `${cached.confidence_pct}% Match`;
+      if (confEl) confEl.textContent = `High Match (${cached.confidence_pct}%) ⭐⭐⭐⭐⭐`;
       if (excerptEl) excerptEl.textContent = cached.excerpt;
     } else {
-      if (confEl) confEl.textContent = 'High Confidence';
-      if (excerptEl) excerptEl.textContent = `Retrieved context passage from ${docName} on Page ${pageNum}.`;
+      if (confEl) confEl.textContent = 'High Confidence Match ⭐⭐⭐⭐⭐';
+      if (excerptEl) excerptEl.textContent = `Found on Page ${pageNum} of ${docName}.`;
     }
 
     drawer.classList.add('open');

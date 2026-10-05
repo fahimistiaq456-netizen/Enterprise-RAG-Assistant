@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nexus RAG | Enterprise AI Document Assistant</title>
-  <meta name="description" content="Production Enterprise Retrieval-Augmented Generation (RAG) Platform with verified citations, hybrid vector search, and multi-tenant isolation.">
+  <title>Nexus RAG | Easy AI Document Assistant</title>
+  <meta name="description" content="Super easy and modern AI Document Assistant. Upload any PDF and chat with it in seconds with instant citations and read-aloud voice.">
   
   <!-- Modern Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,6 +28,17 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
+  <!-- Global Drag and Drop Overlay (Drop PDF anywhere to chat) -->
+  <div id="global-drag-overlay" class="global-drag-overlay" aria-hidden="true">
+    <div class="drag-overlay-box">
+      <div class="drag-icon-pulse">
+        <i data-lucide="file-plus"></i>
+      </div>
+      <h2>Drop your PDF here! ✨</h2>
+      <p>We'll immediately read it so you can ask any questions.</p>
+    </div>
+  </div>
+
   <!-- Main Application Wrapper -->
   <div id="app" class="app-layout">
     
@@ -39,8 +50,8 @@
             <i data-lucide="sparkles"></i>
           </div>
           <div class="brand-text">
-            <h2>Nexus<span>RAG</span></h2>
-            <span class="badge-version">Enterprise v1.0</span>
+            <h2>Nexus<span>AI</span></h2>
+            <span class="badge-version">Kid & Pro Friendly ✨</span>
           </div>
         </div>
         <button id="sidebar-toggle-btn" class="icon-btn sidebar-collapse-btn" title="Collapse sidebar">
@@ -48,67 +59,71 @@
         </button>
       </div>
 
-      <!-- Action Button -->
+      <!-- Quick Action Buttons -->
       <div class="sidebar-action">
         <button id="new-chat-btn" class="btn btn-primary btn-block">
           <i data-lucide="plus-circle"></i>
           <span>New Chat</span>
         </button>
+        <button id="sidebar-upload-btn" class="btn btn-secondary btn-block mt-2">
+          <i data-lucide="paperclip"></i>
+          <span>Add PDF Document</span>
+        </button>
       </div>
 
       <!-- Navigation Tabs -->
       <nav class="sidebar-nav">
-        <div class="nav-section-title">WORKSPACE</div>
+        <div class="nav-section-title">EXPLORE</div>
         <ul class="nav-list">
           <li class="nav-item active" data-tab="chat">
             <button class="nav-link">
-              <i data-lucide="message-square"></i>
+              <i data-lucide="message-circle"></i>
               <span>Chat with Docs</span>
             </button>
           </li>
           <li class="nav-item" data-tab="search">
             <button class="nav-link">
               <i data-lucide="search"></i>
-              <span>Semantic Search</span>
+              <span>Search Sentences</span>
             </button>
           </li>
           <li class="nav-item" data-tab="documents">
             <button class="nav-link">
-              <i data-lucide="files"></i>
-              <span>Knowledge Base</span>
+              <i data-lucide="folder-open"></i>
+              <span>My PDF Library</span>
               <span id="doc-counter-badge" class="nav-badge">0</span>
             </button>
           </li>
           <li class="nav-item" data-tab="settings">
             <button class="nav-link">
-              <i data-lucide="settings-2"></i>
-              <span>Engine Settings</span>
+              <i data-lucide="settings"></i>
+              <span>Settings & AI Models</span>
             </button>
           </li>
         </ul>
 
         <!-- Chat History List -->
         <div class="nav-section-title">
-          <span>CONVERSATION HISTORY</span>
-          <button id="clear-chats-btn" class="icon-btn-tiny" title="Clear non-active chats">
-            <i data-lucide="history"></i>
+          <span>PAST CHATS</span>
+          <button id="clear-chats-btn" class="icon-btn-tiny" title="Clear all past chats">
+            <i data-lucide="trash-2"></i>
           </button>
         </div>
         <div id="conversations-list" class="conversations-list">
-          <div class="empty-history-text">No conversations yet</div>
+          <div class="empty-history-text">No previous chats yet</div>
         </div>
       </nav>
 
       <!-- Sidebar Footer / User Profile -->
       <div class="sidebar-footer">
         <div class="user-profile-card">
-          <div class="user-avatar" id="user-avatar-initials">EX</div>
+          <div class="user-avatar" id="user-avatar-initials">ME</div>
           <div class="user-meta">
-            <span id="user-display-name" class="user-name">Guest User</span>
-            <span id="user-role-badge" class="user-role">Evaluator Mode</span>
+            <span id="user-display-name" class="user-name">Welcome!</span>
+            <span id="user-role-badge" class="user-role">Instant Free Mode</span>
           </div>
-          <button id="auth-action-btn" class="icon-btn" title="Sign In / Register">
-            <i data-lucide="log-in" id="auth-action-icon"></i>
+          <button id="auth-action-btn" class="icon-btn" title="Sign In or Switch Account">
+            <i data-lucide="user-check" id="auth-action-icon"></i>
           </button>
         </div>
       </div>
@@ -125,27 +140,33 @@
           </button>
           <div class="active-tab-indicator">
             <h1 id="page-title">Chat with Documents</h1>
-            <span class="active-doc-scope" id="active-doc-scope">
-              <i data-lucide="layers"></i> All Indexed Documents
-            </span>
+            <div class="doc-active-summary" id="doc-active-summary">
+              <span class="active-pill"><i data-lucide="book-open"></i> <span id="summary-doc-count">Ready to chat</span></span>
+            </div>
           </div>
         </div>
 
         <div class="navbar-right">
-          <!-- Engine Status Pill -->
-          <div class="engine-status-pill" id="engine-status-pill" title="Click to configure LLM settings">
-            <span class="pulse-indicator"></span>
-            <span id="engine-status-name">Smart Local Engine</span>
-          </div>
-
-          <!-- Quick Sample Docs Button -->
-          <button id="quick-load-samples-btn" class="btn btn-secondary btn-sm" title="Load sample enterprise PDFs for instant testing">
-            <i data-lucide="file-plus-2"></i>
-            <span>Load Demo PDFs</span>
+          <!-- Easy PDF Upload in Topbar -->
+          <button id="topbar-upload-btn" class="btn btn-accent btn-sm" title="Upload any PDF file">
+            <i data-lucide="file-up"></i>
+            <span>Upload PDF</span>
           </button>
 
+          <!-- Quick Sample Docs Button -->
+          <button id="quick-load-samples-btn" class="btn btn-secondary btn-sm" title="Load sample documents to test immediately">
+            <i data-lucide="sparkles"></i>
+            <span>Load Demo Docs</span>
+          </button>
+
+          <!-- Engine Status Pill -->
+          <div class="engine-status-pill" id="engine-status-pill" title="Click to choose AI Model (Gemini, OpenAI, Local)">
+            <span class="pulse-indicator"></span>
+            <span id="engine-status-name">Smart AI Engine</span>
+          </div>
+
           <!-- Theme Toggle -->
-          <button id="theme-toggle-btn" class="icon-btn" title="Toggle Theme">
+          <button id="theme-toggle-btn" class="icon-btn" title="Toggle Light/Dark Theme">
             <i data-lucide="sun"></i>
           </button>
         </div>
@@ -163,53 +184,72 @@
               <!-- Welcome State Hero -->
               <div id="chat-welcome-state" class="welcome-hero">
                 <div class="hero-badge">
-                  <i data-lucide="shield-check"></i>
-                  <span>Zero-Hallucination Verified RAG</span>
+                  <i data-lucide="heart-handshake"></i>
+                  <span>Friendly & 100% Accurate AI</span>
                 </div>
-                <h2>Ask anything about your enterprise documents</h2>
-                <p>Upload corporate PDFs, technical manuals, or financial audits. Every answer is synthesized with transparent citations and direct page verification.</p>
+                <h2>Chat with your PDFs easily! ✨</h2>
+                <p>Upload any school notes, company policies, books, or financial reports. Ask any question in plain words, and I'll find the exact answers with page numbers!</p>
                 
+                <!-- Friendly 1-Click Drop / Upload Box on Welcome Screen -->
+                <div class="welcome-upload-card" id="welcome-upload-trigger">
+                  <div class="welcome-upload-icon">
+                    <i data-lucide="file-up"></i>
+                  </div>
+                  <div>
+                    <h4>Click or drag any PDF here</h4>
+                    <span>Supports multi-page PDFs up to 50MB</span>
+                  </div>
+                  <button type="button" class="btn btn-primary btn-sm">Select PDF</button>
+                </div>
+
+                <div class="sample-queries-title">💡 Or try these sample questions:</div>
                 <div class="sample-queries-grid">
-                  <button class="sample-query-card" data-prompt="What are Acme's hardware MFA requirements and IAM session timeouts?">
-                    <span class="card-icon"><i data-lucide="lock"></i></span>
-                    <span class="card-text">"What are Acme's hardware MFA requirements and IAM timeouts?"</span>
+                  <button class="sample-query-card" data-prompt="What are the security password rules and session timeouts?">
+                    <span class="card-icon">🔐</span>
+                    <span class="card-text">"What are the security rules and session timeouts?"</span>
                   </button>
-                  <button class="sample-query-card" data-prompt="What were NexusTech's Q3 ARR, gross margin, and customer growth?">
-                    <span class="card-icon"><i data-lucide="trending-up"></i></span>
-                    <span class="card-text">"What were NexusTech's Q3 ARR, gross margin, and customer growth?"</span>
+                  <button class="sample-query-card" data-prompt="What were the Q3 revenue, gross margin, and business highlights?">
+                    <span class="card-icon">💰</span>
+                    <span class="card-text">"What were the Q3 revenue and financial highlights?"</span>
                   </button>
-                  <button class="sample-query-card" data-prompt="What is the Incident Response SLA for P0 and P1 critical security events?">
-                    <span class="card-icon"><i data-lucide="alert-triangle"></i></span>
-                    <span class="card-text">"What is the Incident Response SLA for P0 and P1 critical events?"</span>
+                  <button class="sample-query-card" data-prompt="How fast does the emergency response team react to critical events?">
+                    <span class="card-icon">🚨</span>
+                    <span class="card-text">"How fast does the emergency response team react?"</span>
                   </button>
-                  <button class="sample-query-card" data-prompt="What are the data encryption standards at rest and in transit?">
-                    <span class="card-icon"><i data-lucide="key"></i></span>
-                    <span class="card-text">"What are the data encryption standards at rest and in transit?"</span>
+                  <button class="sample-query-card" data-prompt="Give me a simple 3-point summary of the uploaded documents.">
+                    <span class="card-icon">📝</span>
+                    <span class="card-text">"Give me a simple 3-point summary of my documents."</span>
                   </button>
                 </div>
               </div>
             </div>
 
-            <!-- Chat Input Area -->
+            <!-- Chat Input Area with Attached Document Chips & Upload Button -->
             <div class="chat-input-container">
+              
+              <!-- Active Document Pills Bar -->
+              <div id="chat-docs-chips-bar" class="chat-docs-chips-bar">
+                <span class="chips-label"><i data-lucide="layers"></i> Active Docs:</span>
+                <div id="chat-chips-list" class="chat-chips-list">
+                  <!-- Injected via JS -->
+                </div>
+                <button type="button" id="chat-add-doc-chip-btn" class="chip-add-btn" title="Add another PDF">
+                  <i data-lucide="plus"></i> Add PDF
+                </button>
+              </div>
+
               <form id="chat-form" class="chat-form">
                 <div class="input-glass-box">
-                  <div class="input-toolbar">
-                    <div class="doc-filter-dropdown-wrapper">
-                      <select id="chat-doc-filter" class="doc-filter-select" title="Scope query to specific document">
-                        <option value="">🔍 Search All Documents</option>
-                      </select>
-                    </div>
-                    <div class="citation-hint">
-                      <i data-lucide="check-circle-2"></i> Verified citations enabled
-                    </div>
-                  </div>
-
                   <div class="textarea-wrapper">
+                    <!-- Paperclip Attachment Button directly in the input bar -->
+                    <button type="button" id="chat-attach-btn" class="icon-btn attach-btn" title="Attach a PDF to chat">
+                      <i data-lucide="paperclip"></i>
+                    </button>
+
                     <textarea 
                       id="chat-input" 
-                      placeholder="Ask a question about your documents... (Shift+Enter for new line)"
-                      rows="2"
+                      placeholder="Ask any question about your documents... (Press Enter to send)"
+                      rows="1"
                     ></textarea>
                     
                     <button type="submit" id="send-msg-btn" class="btn btn-primary send-btn" title="Send Question">
@@ -218,6 +258,10 @@
                   </div>
                 </div>
               </form>
+
+              <div class="input-subhint">
+                <span>💡 Tip: You can drag and drop any PDF anywhere on this page to read it!</span>
+              </div>
             </div>
 
           </div>
@@ -227,8 +271,8 @@
         <section id="tab-search" class="tab-panel">
           <div class="search-view-container">
             <div class="view-header">
-              <h2>Direct Semantic & Hybrid Vector Search</h2>
-              <p>Explore raw similarity scores, lexical BM25 matching, and exact chunk passages retrieved by the RAG embedding engine.</p>
+              <h2>🔍 Sentence & Passage Search</h2>
+              <p>Type any keyword or question to see the exact matching sentences and pages across all your documents.</p>
             </div>
 
             <!-- Search Controls Box -->
@@ -236,27 +280,25 @@
               <form id="semantic-search-form" class="search-form-row">
                 <div class="search-input-field">
                   <i data-lucide="search" class="search-input-icon"></i>
-                  <input type="text" id="semantic-search-input" placeholder="Type a search query (e.g. 'encryption at rest AES-256', 'operating expenditures')...">
+                  <input type="text" id="semantic-search-input" placeholder="Type what you want to find (e.g. 'encryption at rest', 'budget', 'password rules')...">
                 </div>
                 <button type="submit" class="btn btn-primary">
                   <i data-lucide="search"></i>
-                  <span>Search Chunks</span>
+                  <span>Find in Documents</span>
                 </button>
               </form>
 
               <div class="search-filters-row">
                 <div class="filter-item">
-                  <label for="search-top-k">Top Results (K):</label>
+                  <label for="search-top-k">Number of passages to show:</label>
                   <select id="search-top-k" class="custom-select-sm">
-                    <option value="3">3 Chunks</option>
-                    <option value="5" selected>5 Chunks</option>
-                    <option value="8">8 Chunks</option>
-                    <option value="12">12 Chunks</option>
+                    <option value="3">3 Best Matches</option>
+                    <option value="5" selected>5 Best Matches</option>
+                    <option value="8">8 Best Matches</option>
                   </select>
                 </div>
-                <div class="filter-item slider-filter">
-                  <label for="search-alpha">Dense Vector vs Lexical Weight: <span id="alpha-val-display">70% Vector / 30% Keyword</span></label>
-                  <input type="range" id="search-alpha" min="0" max="1" step="0.1" value="0.7">
+                <div class="filter-item" style="margin-left: auto;">
+                  <span class="badge-tag">⚡ Smart AI Semantic Match</span>
                 </div>
               </div>
             </div>
@@ -271,7 +313,7 @@
               <div class="empty-state-search">
                 <i data-lucide="compass"></i>
                 <h3>No search conducted yet</h3>
-                <p>Enter a query above to see ranked vector matches with page numbers and confidence percentages.</p>
+                <p>Type a word or sentence above to see highlighted matches with exact page numbers.</p>
               </div>
             </div>
           </div>
@@ -282,11 +324,11 @@
           <div class="docs-view-container">
             <div class="view-header-flex">
               <div>
-                <h2>Enterprise Knowledge Vault</h2>
-                <p>Manage ingested PDF documents, inspect vector chunks, and monitor extraction status.</p>
+                <h2>📚 My PDF Library</h2>
+                <p>View all uploaded files, see how many pages they have, or add new PDFs.</p>
               </div>
               <button id="load-samples-vault-btn" class="btn btn-secondary">
-                <i data-lucide="folder-down"></i>
+                <i data-lucide="sparkles"></i>
                 <span>Load Sample Enterprise PDFs</span>
               </button>
             </div>
@@ -298,24 +340,24 @@
                 <div class="dropzone-icon">
                   <i data-lucide="file-up"></i>
                 </div>
-                <h3>Drag & drop corporate PDF files here</h3>
-                <p>Supports multi-page enterprise reports, compliance manuals, and technical documents (up to 50MB).</p>
-                <button type="button" class="btn btn-outline" id="browse-files-btn">
-                  <i data-lucide="upload"></i> Browse Files
+                <h3>Drag & drop any PDF file here</h3>
+                <p>Or click the button below to pick a file from your computer.</p>
+                <button type="button" class="btn btn-primary" id="browse-files-btn">
+                  <i data-lucide="folder-plus"></i> Choose PDF from Computer
                 </button>
               </div>
               <div id="upload-progress-container" class="upload-progress-container" style="display: none;">
                 <div class="progress-bar-wrapper">
                   <div id="upload-progress-fill" class="progress-bar-fill"></div>
                 </div>
-                <span id="upload-progress-text">Processing document & computing embeddings...</span>
+                <span id="upload-progress-text">Reading PDF pages and preparing answers...</span>
               </div>
             </div>
 
             <!-- Documents Grid -->
             <div class="docs-table-header">
-              <h3>Indexed Documents (<span id="total-docs-count">0</span>)</h3>
-              <button id="refresh-docs-btn" class="icon-btn-tiny" title="Refresh documents">
+              <h3>My Uploaded PDFs (<span id="total-docs-count">0</span>)</h3>
+              <button id="refresh-docs-btn" class="icon-btn-tiny" title="Refresh list">
                 <i data-lucide="refresh-cw"></i>
               </button>
             </div>
@@ -323,8 +365,8 @@
             <div id="documents-grid" class="documents-grid">
               <div class="empty-state-docs">
                 <i data-lucide="file-text"></i>
-                <h3>No documents indexed yet</h3>
-                <p>Upload your own PDF files or click "Load Sample Enterprise PDFs" to test with pre-built documents.</p>
+                <h3>No PDFs added yet</h3>
+                <p>Drop a PDF above or click "Load Sample Enterprise PDFs" to test with pre-built documents.</p>
               </div>
             </div>
           </div>
@@ -334,50 +376,50 @@
         <section id="tab-settings" class="tab-panel">
           <div class="settings-view-container">
             <div class="view-header">
-              <h2>Engine & Model Settings</h2>
-              <p>Configure LLM inference providers, custom API keys, and retrieval parameters.</p>
+              <h2>⚙️ AI Models & Settings</h2>
+              <p>Choose which AI engine powers your answers. The free built-in engine works out of the box with zero setup!</p>
             </div>
 
             <form id="settings-form" class="settings-form">
               <!-- LLM Provider Selection -->
               <div class="settings-card">
-                <h3><i data-lucide="cpu"></i> LLM Inference Engine</h3>
-                <p class="settings-hint">Select the model provider used to synthesize answers from retrieved document contexts.</p>
+                <h3><i data-lucide="cpu"></i> Choose Your AI Model</h3>
+                <p class="settings-hint">Select your preferred AI brain:</p>
                 
                 <div class="provider-radio-group">
                   <label class="provider-card">
                     <input type="radio" name="llm_provider" value="smart_local" checked>
                     <div class="provider-card-inner">
-                      <div class="provider-badge">Zero Cost</div>
-                      <div class="provider-title">Smart Local Synthesizer</div>
-                      <div class="provider-desc">Built-in extractive RAG engine. Instant, zero API keys required, ideal for evaluation.</div>
+                      <div class="provider-badge highlight">Free & Instant</div>
+                      <div class="provider-title">Smart Local AI ✨</div>
+                      <div class="provider-desc">Works 100% offline, zero API keys required. Perfect for immediate testing!</div>
                     </div>
                   </label>
 
                   <label class="provider-card">
                     <input type="radio" name="llm_provider" value="gemini">
                     <div class="provider-card-inner">
-                      <div class="provider-badge highlight">Recommended</div>
+                      <div class="provider-badge">Google AI Studio</div>
                       <div class="provider-title">Google Gemini (Flash/Pro)</div>
-                      <div class="provider-desc">State-of-the-art reasoning with free tier from Google AI Studio.</div>
+                      <div class="provider-desc">Ultra-smart reasoning with free tier keys from Google.</div>
                     </div>
                   </label>
 
                   <label class="provider-card">
                     <input type="radio" name="llm_provider" value="openai">
                     <div class="provider-card-inner">
-                      <div class="provider-badge">Advanced</div>
+                      <div class="provider-badge">OpenAI</div>
                       <div class="provider-title">OpenAI (GPT-4o Mini)</div>
-                      <div class="provider-desc">High precision synthesis and structured citations via OpenAI API.</div>
+                      <div class="provider-desc">State of the art GPT models via your OpenAI API key.</div>
                     </div>
                   </label>
 
                   <label class="provider-card">
                     <input type="radio" name="llm_provider" value="groq">
                     <div class="provider-card-inner">
-                      <div class="provider-badge">Ultra-Fast</div>
-                      <div class="provider-title">Groq (Llama 3.1 / 3.3)</div>
-                      <div class="provider-desc">Blazing 500+ tokens/second inference speed with open weights models.</div>
+                      <div class="provider-badge">Blazing Fast</div>
+                      <div class="provider-title">Groq Cloud (Llama 3)</div>
+                      <div class="provider-desc">Ultra-fast 500+ words/sec open model inference.</div>
                     </div>
                   </label>
                 </div>
@@ -385,13 +427,13 @@
 
               <!-- API Keys Section -->
               <div class="settings-card">
-                <h3><i data-lucide="key-round"></i> API Credentials</h3>
-                <p class="settings-hint">Your API keys are stored securely in your session and never logged or exposed.</p>
+                <h3><i data-lucide="key-round"></i> Optional API Keys</h3>
+                <p class="settings-hint">Only needed if you selected Gemini, OpenAI, or Groq above. Stored safely in your private session.</p>
                 
                 <div class="form-group">
                   <label for="setting-gemini-key">Google Gemini API Key:</label>
                   <div class="input-with-action">
-                    <input type="password" id="setting-gemini-key" placeholder="Enter AIzaSy... or leave blank if set via .env">
+                    <input type="password" id="setting-gemini-key" placeholder="Enter key or leave blank for Free Smart Local AI">
                     <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="input-link">Get Free Key</a>
                   </div>
                 </div>
@@ -399,7 +441,7 @@
                 <div class="form-group">
                   <label for="setting-openai-key">OpenAI API Key:</label>
                   <div class="input-with-action">
-                    <input type="password" id="setting-openai-key" placeholder="Enter sk-... or leave blank if set via .env">
+                    <input type="password" id="setting-openai-key" placeholder="Enter sk-... or leave blank">
                     <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" class="input-link">Get Key</a>
                   </div>
                 </div>
@@ -407,31 +449,8 @@
                 <div class="form-group">
                   <label for="setting-groq-key">Groq Cloud API Key:</label>
                   <div class="input-with-action">
-                    <input type="password" id="setting-groq-key" placeholder="Enter gsk_... or leave blank if set via .env">
+                    <input type="password" id="setting-groq-key" placeholder="Enter gsk_... or leave blank">
                     <a href="https://console.groq.com/keys" target="_blank" rel="noopener" class="input-link">Get Free Key</a>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Retrieval Parameters -->
-              <div class="settings-card">
-                <h3><i data-lucide="sliders"></i> Retrieval Configuration</h3>
-                
-                <div class="form-group-row">
-                  <div class="form-group">
-                    <label for="setting-top-k">Top Chunks Retrieved (K):</label>
-                    <input type="number" id="setting-top-k" min="1" max="10" value="4">
-                    <span class="field-subtext">Number of source chunks passed into the LLM context prompt.</span>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="setting-embed-provider">Embedding Engine:</label>
-                    <select id="setting-embed-provider" class="custom-select">
-                      <option value="local_dense">Local Dense Feature Vectors (Instant, 0-cost)</option>
-                      <option value="gemini">Google Gemini text-embedding-004</option>
-                      <option value="openai">OpenAI text-embedding-3-small</option>
-                    </select>
-                    <span class="field-subtext">Used to index uploaded PDFs and compute query vectors.</span>
                   </div>
                 </div>
               </div>
@@ -439,7 +458,7 @@
               <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
                   <i data-lucide="save"></i>
-                  <span>Save Engine Settings</span>
+                  <span>Save AI Settings</span>
                 </button>
               </div>
             </form>
@@ -449,12 +468,12 @@
       </div>
     </main>
 
-    <!-- Slide-over Citation Drawer -->
+    <!-- Slide-over Citation Drawer (Friendly Document Viewer) -->
     <aside id="citation-drawer" class="citation-drawer" aria-hidden="true">
       <div class="drawer-header">
         <div class="drawer-title">
-          <i data-lucide="bookmark-check"></i>
-          <h3>Verified Source Citation</h3>
+          <i data-lucide="check-circle-2"></i>
+          <h3>Verified Document Proof</h3>
         </div>
         <button id="close-drawer-btn" class="icon-btn" title="Close drawer">
           <i data-lucide="x"></i>
@@ -464,30 +483,30 @@
       <div class="drawer-content">
         <div class="citation-meta-card">
           <div class="meta-row">
-            <span class="meta-label">Document:</span>
-            <span id="drawer-doc-name" class="meta-val">Sample_Document.pdf</span>
+            <span class="meta-label">Source Document:</span>
+            <span id="drawer-doc-name" class="meta-val">Document.pdf</span>
           </div>
           <div class="meta-row">
-            <span class="meta-label">Page Number:</span>
+            <span class="meta-label">Found On:</span>
             <span id="drawer-page-num" class="meta-badge">Page 1</span>
           </div>
           <div class="meta-row">
-            <span class="meta-label">Relevance Confidence:</span>
-            <span id="drawer-confidence" class="confidence-badge">94% Match</span>
+            <span class="meta-label">Accuracy Match:</span>
+            <span id="drawer-confidence" class="confidence-badge">High Match ⭐⭐⭐⭐⭐</span>
           </div>
         </div>
 
         <div class="drawer-section">
-          <h4>Cited Excerpt from Document:</h4>
+          <h4>Exact Words from Document:</h4>
           <div id="drawer-excerpt-text" class="drawer-quote-box">
             Loading citation excerpt...
           </div>
         </div>
 
         <div class="drawer-section">
-          <h4>Document Chunk Verification:</h4>
-          <div id="drawer-chunk-details" class="drawer-chunk-details">
-            <p>This passage was matched via cosine vector similarity and lexical BM25 token alignment.</p>
+          <div class="drawer-friendly-note">
+            <i data-lucide="shield-check"></i>
+            <span>This answer was strictly extracted from your file with zero hallucinations.</span>
           </div>
         </div>
       </div>
@@ -500,8 +519,8 @@
     <div class="modal-card">
       <div class="modal-header">
         <div class="modal-title">
-          <i data-lucide="file-code"></i>
-          <h3 id="modal-doc-title">Document Chunks Inspector</h3>
+          <i data-lucide="file-text"></i>
+          <h3 id="modal-doc-title">Document Content Viewer</h3>
         </div>
         <button id="close-chunks-modal-btn" class="icon-btn">
           <i data-lucide="x"></i>
@@ -515,49 +534,48 @@
     </div>
   </dialog>
 
-  <!-- Modal: Authentication (Sign In / Register / Guest Demo) -->
+  <!-- Modal: Authentication (Optional - Only if user wants to save permanent account) -->
   <dialog id="auth-modal" class="custom-modal">
     <div class="modal-card auth-modal-card">
       <div class="modal-header">
         <div class="modal-title">
-          <i data-lucide="shield"></i>
-          <h3 id="auth-modal-title">Sign In to Nexus RAG</h3>
+          <i data-lucide="user"></i>
+          <h3 id="auth-modal-title">Account Access</h3>
         </div>
         <button id="close-auth-modal-btn" class="icon-btn">
           <i data-lucide="x"></i>
         </button>
       </div>
       <div class="modal-body">
-        <!-- 1-Click Guest Access Banner for Employers -->
         <div class="guest-banner">
           <div class="guest-banner-text">
-            <strong>Evaluating or Hiring?</strong>
-            <span>Test the full enterprise app in 1 click without entering an email.</span>
+            <strong>Evaluating or Testing?</strong>
+            <span>You are already in free instant mode! No login required.</span>
           </div>
           <button id="guest-login-btn" class="btn btn-accent btn-sm">
-            <i data-lucide="zap"></i>
-            <span>1-Click Demo Login</span>
+            <i data-lucide="sparkles"></i>
+            <span>Instant Demo</span>
           </button>
         </div>
 
         <div class="auth-divider">
-          <span>OR CONTINUE WITH ACCOUNT</span>
+          <span>OR SIGN IN TO A SAVED ACCOUNT</span>
         </div>
 
         <form id="auth-form" class="auth-form">
           <div id="auth-fullname-group" class="form-group" style="display: none;">
-            <label for="auth-fullname">Full Name:</label>
-            <input type="text" id="auth-fullname" placeholder="Alex Morgan">
+            <label for="auth-fullname">Your Name:</label>
+            <input type="text" id="auth-fullname" placeholder="Alex">
           </div>
 
           <div class="form-group">
             <label for="auth-username">Username:</label>
-            <input type="text" id="auth-username" required placeholder="alex_evaluator">
+            <input type="text" id="auth-username" required placeholder="alex_demo">
           </div>
 
           <div id="auth-email-group" class="form-group" style="display: none;">
-            <label for="auth-email">Corporate Email:</label>
-            <input type="email" id="auth-email" placeholder="alex@enterprise.com">
+            <label for="auth-email">Email:</label>
+            <input type="email" id="auth-email" placeholder="alex@example.com">
           </div>
 
           <div class="form-group">

@@ -141,8 +141,14 @@ window.DocumentsManager = {
       if (counterBadge) counterBadge.textContent = docs.length;
       if (totalDocsCount) totalDocsCount.textContent = docs.length;
 
-      // Update chat filter dropdown
-      this.updateChatDocFilter(docs);
+      // Update topbar summary
+      const summaryDocCount = document.getElementById('summary-doc-count');
+      if (summaryDocCount) {
+        summaryDocCount.textContent = docs.length > 0 ? `${docs.length} PDF${docs.length > 1 ? 's' : ''} Ready` : 'No PDFs attached';
+      }
+
+      // Update active document chips in chat bar
+      this.renderChatChips(docs);
 
       // Render documents grid
       this.renderDocumentsGrid(docs);
@@ -151,21 +157,44 @@ window.DocumentsManager = {
     }
   },
 
-  updateChatDocFilter(docs) {
-    const select = document.getElementById('chat-doc-filter');
-    if (!select) return;
+  renderChatChips(docs) {
+    const container = document.getElementById('chat-chips-list');
+    const chipsBar = document.getElementById('chat-docs-chips-bar');
+    if (!container || !chipsBar) return;
 
-    const currentVal = select.value;
-    select.innerHTML = '<option value="">🔍 Search All Documents</option>';
+    if (!docs || docs.length === 0) {
+      container.innerHTML = '<span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">No PDF attached yet (Drop a PDF or click + Add)</span>';
+      return;
+    }
 
-    docs.forEach(doc => {
-      const opt = document.createElement('option');
-      opt.value = doc.id;
-      opt.textContent = `📄 ${doc.filename} (${doc.page_count}p)`;
-      select.appendChild(opt);
+    container.innerHTML = docs.map(d => {
+      const isSelected = window.AppState.selectedDocScope === d.id;
+      const shortName = d.filename.length > 24 ? d.filename.slice(0, 22) + '...' : d.filename;
+      return `
+        <div class="doc-chip ${isSelected ? 'selected' : ''}" data-id="${d.id}" title="${this.escapeHtml(d.filename)} (${d.page_count} pages)">
+          <i data-lucide="file-text"></i>
+          <span>${this.escapeHtml(shortName)}</span>
+          <span style="font-size: 0.68rem; opacity: 0.7;">(${d.page_count}p)</span>
+        </div>
+      `;
+    }).join('');
+
+    if (window.lucide) lucide.createIcons({ root: container });
+
+    // Click to filter by specific document or toggle all
+    container.querySelectorAll('.doc-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const id = parseInt(chip.getAttribute('data-id'));
+        if (window.AppState.selectedDocScope === id) {
+          window.AppState.selectedDocScope = null;
+          showToast('Now searching across all documents', 'info');
+        } else {
+          window.AppState.selectedDocScope = id;
+          showToast(`Chat focused on: ${chip.getAttribute('title')}`, 'info');
+        }
+        this.renderChatChips(window.AppState.documents);
+      });
     });
-
-    select.value = currentVal;
   },
 
   renderDocumentsGrid(docs) {

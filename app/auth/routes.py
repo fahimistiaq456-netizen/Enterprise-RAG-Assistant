@@ -148,6 +148,13 @@ def guest_login(response: Response, db: Session = Depends(get_db)):
     db.add(settings)
     db.commit()
 
+    # Pre-seed demo documents so the user can immediately chat without any friction
+    try:
+        from app.routes.documents import load_sample_documents
+        load_sample_documents(user=user, db=db)
+    except Exception as e:
+        print(f"[Warning] Could not auto-seed sample docs: {e}")
+
     token = create_access_token(data={"sub": user.username, "user_id": user.id})
     response.set_cookie(
         key="access_token",

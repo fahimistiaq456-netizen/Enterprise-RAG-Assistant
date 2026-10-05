@@ -1,5 +1,5 @@
 /**
- * Nexus RAG - Enterprise Assistant Application Orchestrator
+ * Nexus RAG - Modern & Kid-Friendly Application Orchestrator
  */
 
 // Global State
@@ -13,7 +13,7 @@ window.AppState = {
 };
 
 // Toast Notification Manager
-window.showToast = function(message, type = 'info', duration = 4000) {
+window.showToast = function(message, type = 'info', duration = 3500) {
   const container = document.getElementById('toast-container');
   if (!container) return;
 
@@ -54,6 +54,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Theme toggle
   setupThemeToggle();
 
+  // Global Drag & Drop Overlay Setup
+  setupGlobalDragDrop();
+
+  // Wire up quick upload triggers to the hidden file input
+  setupQuickUploadButtons();
+
   // Initialize Auth
   await window.AuthManager.init();
 
@@ -78,6 +84,76 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
+function setupGlobalDragDrop() {
+  const overlay = document.getElementById('global-drag-overlay');
+  let dragCounter = 0;
+
+  window.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    dragCounter++;
+    if (overlay && e.dataTransfer && e.dataTransfer.types.includes('Files')) {
+      overlay.classList.add('active');
+      overlay.setAttribute('aria-hidden', 'false');
+    }
+  });
+
+  window.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    dragCounter--;
+    if (dragCounter <= 0 && overlay) {
+      dragCounter = 0;
+      overlay.classList.remove('active');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+  });
+
+  window.addEventListener('dragover', (e) => {
+    e.preventDefault();
+  });
+
+  window.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dragCounter = 0;
+    if (overlay) {
+      overlay.classList.remove('active');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.name.toLowerCase().endsWith('.pdf')) {
+        window.DocumentsManager.uploadFile(file);
+      } else {
+        showToast('Please drop a PDF document (.pdf)', 'error');
+      }
+    }
+  });
+}
+
+function setupQuickUploadButtons() {
+  const fileInput = document.getElementById('pdf-file-input');
+  if (!fileInput) return;
+
+  const triggerIds = [
+    'topbar-upload-btn',
+    'sidebar-upload-btn',
+    'welcome-upload-trigger',
+    'chat-attach-btn',
+    'chat-add-doc-chip-btn',
+  ];
+
+  triggerIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        fileInput.click();
+      });
+    }
+  });
+}
+
 function setupTabs() {
   const navItems = document.querySelectorAll('.nav-item');
   const panels = document.querySelectorAll('.tab-panel');
@@ -85,9 +161,9 @@ function setupTabs() {
 
   const titles = {
     chat: 'Chat with Documents',
-    search: 'Semantic Search',
-    documents: 'Knowledge Base',
-    settings: 'Engine Settings',
+    search: 'Sentence Search',
+    documents: 'My PDF Library',
+    settings: 'AI Models & Settings',
   };
 
   navItems.forEach(item => {
