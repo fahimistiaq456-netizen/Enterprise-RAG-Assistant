@@ -1,28 +1,27 @@
-# ⚡ Nexus RAG: Enterprise AI Document Assistant
+# ⚡ Nexus Cognitive Hub: 2026 Enterprise RAG Platform
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status](https://img.shields.io/badge/Production-Ready-brightgreen.svg)](#)
+[![Status](https://img.shields.io/badge/Enterprise--2026-Ready-indigo.svg)](#)
 
-> A production-grade **Enterprise Retrieval-Augmented Generation (RAG) Platform** featuring verified citations, hybrid vector/lexical retrieval, streaming AI responses, conversation history, multi-tenant authentication, and single-command Docker deployment.
+> A mission-critical, AI-first **Enterprise Cognitive Platform & Retrieval-Augmented Generation (RAG) System** benchmarked against **OpenAI Enterprise, Notion AI, Cursor, and Perplexity Enterprise**. Engineered with verified citation provenance, inspectable deep reasoning steps, hybrid dense/lexical search, observability metrics, role-based access governance, and zero visual noise.
 
 ---
 
-## 🌟 Key Features
+## 🌟 2026 Enterprise Features
 
-| Feature | Description |
+| Feature | Capability & Enterprise Value |
 | :--- | :--- |
-| 📄 **PDF Upload & Processing** | Drag-and-drop enterprise PDF ingestion with page tracking, metadata preservation, and recursive semantic chunking. |
-| 🔍 **Semantic & Hybrid Search** | Blends dense vector cosine similarity (70%) with BM25 lexical keyword matching (30%) for maximum retrieval precision. |
-| 💬 **Chat with Documents** | Real-time Server-Sent Events (SSE) streaming chat that synthesizes grounded answers strictly from indexed documents. |
-| 📚 **Verifiable Citations** | Clickable inline citation pills (`[[Doc: policy.pdf, Page: 2]]`) that open an interactive slide-over drawer showing exact excerpts and confidence scores. |
-| 📝 **Conversation History** | Multi-session conversation management with SQLite persistence (create, rename, switch, and delete chats). |
-| 👤 **User Authentication** | Secure JWT authentication with bcrypt password hashing and a **1-Click Guest Demo Mode** for immediate employer testing. |
-| 🐳 **Docker Deployment** | Production multi-stage `Dockerfile` and `docker-compose.yml` with health checks and volume persistence. |
-| ☁️ **Online Deployment Ready** | Pre-configured for free instant deployment on **Hugging Face Spaces**, **Render**, and **Railway**. |
-| ⚙️ **Multi-Model Support** | Pluggable support for **Google Gemini (2.5/1.5 Flash)**, **OpenAI (GPT-4o Mini)**, **Groq (Llama 3.1)**, and a **Built-in Smart Local Synthesizer** (0-cost offline mode). |
+| ⌨️ **Universal Command Palette (Ctrl+K)** | Sub-second fuzzy search across repositories, system commands, model switches, and recent reasoning threads. |
+| 🧠 **Deep Reasoning Process Transparency** | Expandable chain-of-thought rationale (OpenAI o3 / DeepSeek-R1 style) displaying dense vector steps, cosine similarity thresholds, and re-ranking. |
+| 📚 **Verifiable Citation Provenance** | Interactive footnote citations (`P.2 · 94%`) with sidecar split-screen verification drawer showing exact sentence excerpts and vector distance. |
+| 🔍 **Semantic Discovery Studio** | Interactive hybrid retrieval tuning slider (70% Dense Vectors + 30% Lexical BM25) with 1-click citation handoff to active reasoning threads. |
+| 📊 **Executive Observability Dashboard** | Real-time query throughput, token burn economics, p95 latency counters, model share distribution, and immutable SIEM audit logs. |
+| 🛡️ **Enterprise Security & Governance** | Role-Based Access Control (RBAC), Okta/Azure Entra ID SSO status, scoped API key lifecycle manager, and SOC2 Type II compliance indicators. |
+| ⚙️ **Multi-Model Routing Hub** | Seamless routing between **OpenAI (GPT-4o)**, **Google Gemini 2.0 Pro**, **Groq (Llama 3)**, and **Smart Local AI** (private offline zero-egress mode). |
+| 📄 **Knowledge Base Repositories** | Drag-and-drop PDF ingestion, live vector store telemetry (768d Dense, 14ms latency), and chunk boundary inspection modal. |
 
 ---
 

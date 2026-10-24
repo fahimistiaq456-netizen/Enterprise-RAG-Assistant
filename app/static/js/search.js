@@ -1,6 +1,9 @@
 /**
- * Semantic & Hybrid Vector Search Explorer
+   NEXUS ENTERPRISE COGNITIVE PLATFORM — SEMANTIC DISCOVERY STUDIO
+   Handles hybrid vector + lexical BM25 search, alpha ratio tuning,
+   similarity confidence scoring, and 1-click citation handoff to chat.
  */
+
 window.SearchManager = {
   init() {
     this.bindEvents();
@@ -9,26 +12,26 @@ window.SearchManager = {
   bindEvents() {
     const form = document.getElementById('semantic-search-form');
     const alphaSlider = document.getElementById('search-alpha');
-    const alphaDisplay = document.getElementById('alpha-val-display');
+    const alphaLabel = document.getElementById('alpha-label');
 
     if (form) {
       form.addEventListener('submit', (e) => {
         e.preventDefault();
-        this.executeSearch();
+        this.performSearch();
       });
     }
 
-    if (alphaSlider && alphaDisplay) {
+    if (alphaSlider && alphaLabel) {
       alphaSlider.addEventListener('input', (e) => {
         const val = parseFloat(e.target.value);
-        const vectorPct = Math.round(val * 100);
-        const keywordPct = 100 - vectorPct;
-        alphaDisplay.textContent = `${vectorPct}% Vector / ${keywordPct}% Keyword`;
+        const densePct = Math.round(val * 100);
+        const lexPct = 100 - densePct;
+        alphaLabel.textContent = `${densePct}% Dense / ${lexPct}% Lexical`;
       });
     }
   },
 
-  async executeSearch() {
+  async performSearch() {
     const input = document.getElementById('semantic-search-input');
     const topKSelect = document.getElementById('search-top-k');
     const alphaSlider = document.getElementById('search-alpha');
@@ -37,18 +40,19 @@ window.SearchManager = {
     const countText = document.getElementById('results-count-text');
     const latencyText = document.getElementById('results-latency-text');
 
-    if (!input || !resultsContainer) return;
-
+    if (!input) return;
     const query = input.value.trim();
     if (!query) {
-      showToast('Please enter a search query', 'info');
+      showToast('Please type a search query or concept', 'info');
       return;
     }
 
-    const topK = parseInt(topKSelect?.value || '5');
-    const alpha = parseFloat(alphaSlider?.value || '0.7');
+    const topK = parseInt(topKSelect ? topKSelect.value : '5');
+    const alpha = parseFloat(alphaSlider ? alphaSlider.value : '0.7');
 
-    resultsContainer.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">Performing hybrid vector search...</div>';
+    if (resultsContainer) {
+      resultsContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px;">Computing 768d vector embeddings & BM25 hybrid ranking...</div>';
+    }
 
     try {
       const res = await fetch('/api/search', {
@@ -61,88 +65,104 @@ window.SearchManager = {
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Search failed');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Search query failed');
+      }
 
-      if (statsContainer) statsContainer.style.display = 'flex';
-      if (countText) countText.textContent = `${data.total_results} chunks retrieved`;
-      if (latencyText) latencyText.textContent = `Latency: ${data.execution_time_ms} ms`;
+      const data = await res.json();
+
+      if (statsContainer) statsContainer.style.display = 'block';
+      if (countText) countText.textContent = `${data.total_results} matching passages`;
+      if (latencyText) latencyText.textContent = `${data.execution_time_ms} ms latency`;
 
       if (!data.results || data.results.length === 0) {
         resultsContainer.innerHTML = `
-          <div class="empty-state-search">
-            <i data-lucide="help-circle"></i>
-            <h3>No matching chunks found</h3>
-            <p>Try rephrasing your search terms or adjusting the vector weight.</p>
+          <div style="text-align: center; padding: 50px 20px; color: var(--text-muted);">
+            <i data-lucide="search-x" style="width: 32px; height: 32px; margin-bottom: 8px;"></i>
+            <h3>No matching passages found</h3>
+            <p style="font-size: 13px;">Try adjusting the query or loading sample documents.</p>
           </div>
         `;
         if (window.lucide) lucide.createIcons({ root: resultsContainer });
         return;
       }
 
-      resultsContainer.innerHTML = '';
-      data.results.forEach(r => {
-        const card = document.createElement('div');
-        card.className = 'search-result-card';
-
-        // Highlight matching query tokens in snippet
-        const highlightedSnippet = this.highlightTokens(r.text, query);
-
-        card.innerHTML = `
+      resultsContainer.innerHTML = data.results.map(r => `
+        <div class="search-result-card">
           <div class="result-card-header">
-            <div class="doc-info-badge">
-              <i data-lucide="file-text"></i>
+            <div class="result-doc-name">
+              <i data-lucide="file-text" style="width: 15px; height: 15px; color: var(--primary-400);"></i>
               <span>${this.escapeHtml(r.filename)}</span>
-              <span class="meta-badge">Page ${r.page_number}</span>
+              <span class="nav-item-badge" style="background: var(--bg-elevated); color: var(--text-muted);">Page ${r.page_number}</span>
             </div>
-            <div class="score-progress-container">
-              <span>${r.confidence_pct}% Match</span>
-              <div class="confidence-bar-outer">
-                <div class="confidence-bar-inner" style="width: ${r.confidence_pct}%"></div>
-              </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="citation-match-tag">${r.confidence_pct}% Match</span>
+              <span style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">Score: ${r.similarity_score.toFixed(4)}</span>
             </div>
           </div>
-          <div class="result-passage-text">
-            "${highlightedSnippet}"
-          </div>
-          <div style="margin-top: 10px; font-size: 0.72rem; color: var(--text-muted); display: flex; gap: 14px;">
-            <span>Dense Score: ${(r.dense_score * 100).toFixed(1)}%</span>
-            <span>BM25 Score: ${(r.lexical_score * 100).toFixed(1)}%</span>
-            <span>Chunk #${r.chunk_id}</span>
-          </div>
-        `;
 
-        resultsContainer.appendChild(card);
-      });
+          <div class="result-passage-body">
+            ${this.highlightKeywords(r.text, query)}
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button class="btn-secondary btn-sm cite-in-chat-btn" data-doc="${r.document_id}" data-text="${this.escapeHtml(r.text)}" data-name="${this.escapeHtml(r.filename)}">
+              <i data-lucide="message-square-plus" style="width: 13px; height: 13px;"></i>
+              <span>Ask AI About This Passage</span>
+            </button>
+          </div>
+        </div>
+      `).join('');
 
       if (window.lucide) lucide.createIcons({ root: resultsContainer });
+
+      // Bind "Ask AI About This Passage"
+      resultsContainer.querySelectorAll('.cite-in-chat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const docId = btn.getAttribute('data-doc');
+          const snippet = btn.getAttribute('data-text');
+          const docName = btn.getAttribute('data-name');
+
+          window.AppState.selectedDocScope = docId;
+          window.DocumentsManager.updateChatDocChips(window.AppState.documents);
+          window.switchTab('chat');
+
+          const chatInput = document.getElementById('chat-input');
+          if (chatInput) {
+            chatInput.value = `Explain the following excerpt from ${docName}:\n\n"${snippet.slice(0, 240)}..."`;
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 180) + 'px';
+            chatInput.focus();
+          }
+          showToast(`Prepared question about "${docName}" in chat`, 'success');
+        });
+      });
+
     } catch (err) {
-      resultsContainer.innerHTML = `<div style="color: var(--accent-rose); padding: 20px;">Error: ${err.message}</div>`;
+      if (resultsContainer) {
+        resultsContainer.innerHTML = `<div style="color: var(--status-rose); text-align: center; padding: 30px;">Search Error: ${err.message}</div>`;
+      }
       showToast(err.message, 'error');
     }
   },
 
-  highlightTokens(text, query) {
-    if (!text || !query) return this.escapeHtml(text);
-    const tokens = query.toLowerCase().split(/\s+/).filter(t => t.length > 2);
-    let safe = this.escapeHtml(text);
+  highlightKeywords(text, query) {
+    const safeText = this.escapeHtml(text);
+    const words = query.split(/\s+/).filter(w => w.length > 2);
+    if (words.length === 0) return safeText;
 
-    tokens.forEach(token => {
-      const regex = new RegExp(`(${token})`, 'gi');
-      safe = safe.replace(regex, '<mark>$1</mark>');
-    });
-
-    return safe;
+    const regex = new RegExp(`(${words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+    return safeText.replace(regex, '<mark style="background: rgba(99, 102, 241, 0.25); color: var(--primary-400); padding: 1px 3px; border-radius: 3px;">$1</mark>');
   },
 
-  escapeHtml(text) {
-    if (!text) return '';
-    return text.replace(/[&<>"']/g, m => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
-    })[m]);
-  }
+  escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  },
 };

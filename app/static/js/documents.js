@@ -1,6 +1,9 @@
 /**
- * Knowledge Base & Document Management
+   NEXUS ENTERPRISE COGNITIVE PLATFORM — KNOWLEDGE HUB & DOCUMENT CONTROLLER
+   Manages automated vector indexing, chunk boundaries, drag-and-drop ingestion,
+   telemetry updates, and chunk inspection dialogs.
  */
+
 window.DocumentsManager = {
   async init() {
     this.bindEvents();
@@ -29,24 +32,23 @@ window.DocumentsManager = {
     }
 
     if (dropzone) {
-      ['dragenter', 'dragover'].forEach(eventName => {
-        dropzone.addEventListener(eventName, (e) => {
+      ['dragenter', 'dragover'].forEach(name => {
+        dropzone.addEventListener(name, (e) => {
           e.preventDefault();
           dropzone.classList.add('drag-active');
-        }, false);
+        });
       });
 
-      ['dragleave', 'drop'].forEach(eventName => {
-        dropzone.addEventListener(eventName, (e) => {
+      ['dragleave', 'drop'].forEach(name => {
+        dropzone.addEventListener(name, (e) => {
           e.preventDefault();
           dropzone.classList.remove('drag-active');
-        }, false);
+        });
       });
 
       dropzone.addEventListener('drop', (e) => {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        if (files.length > 0) {
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
           this.uploadFile(files[0]);
         }
       });
@@ -67,7 +69,7 @@ window.DocumentsManager = {
 
   async uploadFile(file) {
     if (!file.name.toLowerCase().endsWith('.pdf')) {
-      showToast('Please upload a PDF document (.pdf)', 'error');
+      showToast('Only PDF documents (.pdf) can be ingested.', 'error');
       return;
     }
 
@@ -77,7 +79,7 @@ window.DocumentsManager = {
 
     if (progressContainer) {
       progressContainer.style.display = 'block';
-      if (progressFill) progressFill.style.width = '30%';
+      if (progressFill) progressFill.style.width = '25%';
       if (progressText) progressText.textContent = `Uploading "${file.name}"...`;
     }
 
@@ -85,8 +87,8 @@ window.DocumentsManager = {
       const formData = new FormData();
       formData.append('file', file);
 
-      if (progressFill) progressFill.style.width = '65%';
-      if (progressText) progressText.textContent = `Extracting pages & computing embeddings for "${file.name}"...`;
+      if (progressFill) progressFill.style.width = '60%';
+      if (progressText) progressText.textContent = `Extracting pages & computing dense embeddings for "${file.name}"...`;
 
       const res = await fetch('/api/documents/upload', {
         method: 'POST',
@@ -99,28 +101,30 @@ window.DocumentsManager = {
       }
 
       if (progressFill) progressFill.style.width = '100%';
-      showToast(`Successfully indexed "${file.name}" (${data.page_count} pages, ${data.chunk_count} chunks)`, 'success');
+      if (progressText) progressText.textContent = `Indexing complete!`;
+
+      showToast(`Successfully indexed "${file.name}" (${data.chunk_count} chunks)`, 'success', 3000);
       await this.fetchDocuments();
     } catch (err) {
-      showToast('Upload error: ' + err.message, 'error');
+      showToast(err.message, 'error');
     } finally {
       setTimeout(() => {
         if (progressContainer) progressContainer.style.display = 'none';
-        if (progressFill) progressFill.style.width = '0%';
         const fileInput = document.getElementById('pdf-file-input');
         if (fileInput) fileInput.value = '';
-      }, 1000);
+      }, 1500);
     }
   },
 
   async loadSampleDocs() {
-    showToast('Loading pre-built enterprise documents...', 'info');
+    showToast('Indexing enterprise sample PDFs into knowledge vault...', 'info', 3000);
     try {
       const res = await fetch('/api/documents/load-samples', { method: 'POST' });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Failed to load sample documents');
 
-      showToast(`Loaded ${data.documents.length} enterprise documents!`, 'success');
+      if (!res.ok) throw new Error(data.detail || 'Failed to load samples');
+
+      showToast(data.message || 'Sample enterprise PDFs loaded and indexed!', 'success', 3500);
       await this.fetchDocuments();
     } catch (err) {
       showToast(err.message, 'error');
@@ -133,156 +137,187 @@ window.DocumentsManager = {
       if (!res.ok) return;
 
       const docs = await res.json();
-      window.AppState.documents = docs;
+      window.AppState.documents = docs || [];
 
-      // Update counters
-      const counterBadge = document.getElementById('doc-counter-badge');
-      const totalDocsCount = document.getElementById('total-docs-count');
-      if (counterBadge) counterBadge.textContent = docs.length;
-      if (totalDocsCount) totalDocsCount.textContent = docs.length;
-
-      // Update topbar summary
-      const summaryDocCount = document.getElementById('summary-doc-count');
-      if (summaryDocCount) {
-        summaryDocCount.textContent = docs.length > 0 ? `${docs.length} PDF${docs.length > 1 ? 's' : ''} Ready` : 'No PDFs attached';
-      }
-
-      // Update active document chips in chat bar
-      this.renderChatChips(docs);
-
-      // Render documents grid
-      this.renderDocumentsGrid(docs);
+      this.renderDocumentsTable(docs);
+      this.updateTelemetry(docs);
+      this.updateChatDocChips(docs);
     } catch (err) {
       console.warn('Failed to fetch documents:', err);
     }
   },
 
-  renderChatChips(docs) {
-    const container = document.getElementById('chat-chips-list');
-    const chipsBar = document.getElementById('chat-docs-chips-bar');
-    if (!container || !chipsBar) return;
+  renderDocumentsTable(docs) {
+    const tbody = document.getElementById('documents-table-body');
+    const totalCountEl = document.getElementById('total-docs-count');
+    const badgeEl = document.getElementById('doc-counter-badge');
+
+    if (totalCountEl) totalCountEl.textContent = docs.length;
+    if (badgeEl) badgeEl.textContent = docs.length;
+
+    if (!tbody) return;
 
     if (!docs || docs.length === 0) {
-      container.innerHTML = '<span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">No PDF attached yet (Drop a PDF or click + Add)</span>';
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
+            No documents indexed yet. Upload a PDF or click "Load Sample Enterprise PDFs".
+          </td>
+        </tr>
+      `;
       return;
     }
 
-    container.innerHTML = docs.map(d => {
-      const isSelected = window.AppState.selectedDocScope === d.id;
-      const shortName = d.filename.length > 24 ? d.filename.slice(0, 22) + '...' : d.filename;
+    tbody.innerHTML = docs.map(doc => {
+      const sizeKb = (doc.file_size / 1024).toFixed(1) + ' KB';
+      const statusColor = doc.status === 'indexed' ? 'var(--status-emerald)' : 'var(--status-amber)';
+      const statusBg = doc.status === 'indexed' ? 'var(--status-emerald-subtle)' : 'var(--status-amber-subtle)';
+      const classification = doc.filename.toLowerCase().includes('security') ? 'Confidential' : 'Internal';
+
       return `
-        <div class="doc-chip ${isSelected ? 'selected' : ''}" data-id="${d.id}" title="${this.escapeHtml(d.filename)} (${d.page_count} pages)">
-          <i data-lucide="file-text"></i>
-          <span>${this.escapeHtml(shortName)}</span>
-          <span style="font-size: 0.68rem; opacity: 0.7;">(${d.page_count}p)</span>
-        </div>
+        <tr>
+          <td>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="file-text" style="width: 16px; height: 16px; color: var(--primary-400); flex-shrink: 0;"></i>
+              <span style="font-weight: 500; color: var(--text-primary);">${this.escapeHtml(doc.filename)}</span>
+            </div>
+          </td>
+          <td class="tabular-nums">${doc.page_count}</td>
+          <td class="tabular-nums">${doc.chunk_count}</td>
+          <td class="tabular-nums" style="color: var(--text-muted);">${sizeKb}</td>
+          <td>
+            <span class="nav-item-badge" style="background: ${statusBg}; color: ${statusColor};">
+              ${doc.status.toUpperCase()}
+            </span>
+          </td>
+          <td>
+            <span class="nav-item-badge" style="background: var(--bg-elevated); color: var(--text-muted);">
+              ${classification}
+            </span>
+          </td>
+          <td style="text-align: right;">
+            <div style="display: inline-flex; align-items: center; gap: 4px;">
+              <button class="icon-btn-ghost view-chunks-btn" data-id="${doc.id}" data-name="${this.escapeHtml(doc.filename)}" title="Inspect vector chunks">
+                <i data-lucide="layers" style="width: 14px; height: 14px;"></i>
+              </button>
+              <button class="icon-btn-ghost scope-doc-btn" data-id="${doc.id}" data-name="${this.escapeHtml(doc.filename)}" title="Scope reasoning to this file">
+                <i data-lucide="crosshair" style="width: 14px; height: 14px;"></i>
+              </button>
+              <button class="icon-btn-ghost delete-doc-btn" data-id="${doc.id}" title="Delete document">
+                <i data-lucide="trash-2" style="width: 14px; height: 14px; color: var(--status-rose);"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
       `;
     }).join('');
 
-    if (window.lucide) lucide.createIcons({ root: container });
+    if (window.lucide) lucide.createIcons({ root: tbody });
 
-    // Click to filter by specific document or toggle all
-    container.querySelectorAll('.doc-chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        const id = parseInt(chip.getAttribute('data-id'));
-        if (window.AppState.selectedDocScope === id) {
-          window.AppState.selectedDocScope = null;
-          showToast('Now searching across all documents', 'info');
-        } else {
-          window.AppState.selectedDocScope = id;
-          showToast(`Chat focused on: ${chip.getAttribute('title')}`, 'info');
-        }
-        this.renderChatChips(window.AppState.documents);
+    // Bind action buttons
+    tbody.querySelectorAll('.view-chunks-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const docId = btn.getAttribute('data-id');
+        const docName = btn.getAttribute('data-name');
+        this.openChunksModal(docId, docName);
+      });
+    });
+
+    tbody.querySelectorAll('.scope-doc-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const docId = btn.getAttribute('data-id');
+        const docName = btn.getAttribute('data-name');
+        this.setScopeDocument(docId, docName);
+      });
+    });
+
+    tbody.querySelectorAll('.delete-doc-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const docId = btn.getAttribute('data-id');
+        this.deleteDocument(docId);
       });
     });
   },
 
-  renderDocumentsGrid(docs) {
-    const grid = document.getElementById('documents-grid');
-    if (!grid) return;
+  updateTelemetry(docs) {
+    const docCountEl = document.getElementById('telemetry-doc-count');
+    const chunkCountEl = document.getElementById('telemetry-chunk-count');
 
-    if (!docs || docs.length === 0) {
-      grid.innerHTML = `
-        <div class="empty-state-docs" style="grid-column: 1 / -1;">
-          <i data-lucide="file-text"></i>
-          <h3>No documents indexed yet</h3>
-          <p>Upload a PDF document above or click "Load Sample Enterprise PDFs" for immediate testing.</p>
-        </div>
+    const totalDocs = docs.length;
+    const totalChunks = docs.reduce((acc, d) => acc + (d.chunk_count || 0), 0);
+
+    if (docCountEl) docCountEl.textContent = totalDocs;
+    if (chunkCountEl) chunkCountEl.textContent = totalChunks;
+  },
+
+  updateChatDocChips(docs) {
+    const listEl = document.getElementById('chat-chips-list');
+    if (!listEl) return;
+
+    if (!window.AppState.selectedDocScope) {
+      listEl.innerHTML = `
+        <span class="scope-chip">
+          <i data-lucide="database" style="width: 11px; height: 11px;"></i>
+          <span>All Repositories (${docs.length} files)</span>
+        </span>
       `;
-      if (window.lucide) lucide.createIcons({ root: grid });
-      return;
+    } else {
+      const activeDoc = docs.find(d => String(d.id) === String(window.AppState.selectedDocScope));
+      const docName = activeDoc ? activeDoc.filename : 'Selected Document';
+      listEl.innerHTML = `
+        <span class="scope-chip" style="border-color: var(--primary-border); background: var(--primary-subtle); color: var(--primary-400);">
+          <i data-lucide="file-text" style="width: 11px; height: 11px;"></i>
+          <span>Scoped: ${this.escapeHtml(docName)}</span>
+          <span class="remove-chip" id="clear-scope-btn" title="Clear filter" style="margin-left: 4px;">✕</span>
+        </span>
+      `;
+
+      const clearBtn = document.getElementById('clear-scope-btn');
+      if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+          window.AppState.selectedDocScope = '';
+          this.updateChatDocChips(docs);
+          showToast('Reasoning scope reset to entire knowledge base', 'info');
+        });
+      }
     }
 
-    grid.innerHTML = '';
-    docs.forEach(doc => {
-      const card = document.createElement('div');
-      card.className = 'doc-card';
+    if (window.lucide) lucide.createIcons({ root: listEl });
+  },
 
-      const sizeKb = (doc.file_size / 1024).toFixed(1);
-      const sizeDisplay = doc.file_size > 1024 * 1024 ? `${(doc.file_size / (1024 * 1024)).toFixed(2)} MB` : `${sizeKb} KB`;
+  setScopeDocument(docId, docName) {
+    window.AppState.selectedDocScope = docId;
+    this.updateChatDocChips(window.AppState.documents);
+    window.switchTab('chat');
+    showToast(`Reasoning scoped strictly to "${docName}"`, 'success');
+  },
 
-      card.innerHTML = `
-        <div class="doc-card-top">
-          <div class="doc-type-icon">
-            <i data-lucide="file-text"></i>
-          </div>
-          <div>
-            <h4 class="doc-card-title">${this.escapeHtml(doc.filename)}</h4>
-            <div class="doc-card-stats">
-              <span>${doc.page_count || 0} Pages</span>
-              <span>•</span>
-              <span>${doc.chunk_count || 0} Chunks</span>
-              <span>•</span>
-              <span>${sizeDisplay}</span>
-            </div>
-          </div>
-        </div>
+  async deleteDocument(docId) {
+    if (!confirm('Permanently remove this document and delete its vector embeddings?')) return;
+    try {
+      const res = await fetch(`/api/documents/${docId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete document');
 
-        <div class="doc-card-footer">
-          <span class="status-badge ${doc.status}">${doc.status}</span>
-          <div style="display: flex; gap: 6px;">
-            <button class="btn btn-outline btn-sm view-chunks-btn" data-id="${doc.id}" data-name="${this.escapeHtml(doc.filename)}">
-              <i data-lucide="eye"></i> Chunks
-            </button>
-            <button class="icon-btn-tiny delete-doc-btn" data-id="${doc.id}" data-name="${this.escapeHtml(doc.filename)}" title="Delete document">
-              <i data-lucide="trash-2"></i>
-            </button>
-          </div>
-        </div>
-      `;
-
-      grid.appendChild(card);
-    });
-
-    if (window.lucide) lucide.createIcons({ root: grid });
-
-    // Bind event handlers
-    grid.querySelectorAll('.view-chunks-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        const name = btn.getAttribute('data-name');
-        this.openChunksModal(id, name);
-      });
-    });
-
-    grid.querySelectorAll('.delete-doc-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        const name = btn.getAttribute('data-name');
-        this.deleteDocument(id, name);
-      });
-    });
+      showToast('Document and vector embeddings deleted', 'info');
+      if (String(window.AppState.selectedDocScope) === String(docId)) {
+        window.AppState.selectedDocScope = '';
+      }
+      await this.fetchDocuments();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
   },
 
   async openChunksModal(docId, docName) {
     const modal = document.getElementById('chunks-modal');
-    const title = document.getElementById('modal-doc-title');
-    const container = document.getElementById('modal-chunks-list');
+    const titleEl = document.getElementById('modal-doc-title');
+    const listEl = document.getElementById('modal-chunks-list');
 
-    if (!modal || !container) return;
+    if (!modal) return;
 
-    if (title) title.textContent = `Chunks Inspector: ${docName}`;
-    container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted);">Loading vector chunks...</div>';
+    if (titleEl) titleEl.textContent = `Vector Provenance: ${docName}`;
+    if (listEl) listEl.innerHTML = '<div style="text-align: center; padding: 30px; color: var(--text-muted);">Fetching vector chunks...</div>';
+
     modal.showModal();
 
     try {
@@ -291,48 +326,33 @@ window.DocumentsManager = {
 
       const chunks = await res.json();
       if (!chunks || chunks.length === 0) {
-        container.innerHTML = '<div style="text-align: center; padding: 20px;">No chunks found for this document.</div>';
+        listEl.innerHTML = '<div style="text-align: center; padding: 30px; color: var(--text-muted);">No chunks available for this file.</div>';
         return;
       }
 
-      container.innerHTML = chunks.map(ch => `
-        <div class="chunk-card">
-          <div class="chunk-card-meta">
-            <span>Chunk #${ch.chunk_index + 1} (Page ${ch.page_number})</span>
-            <span>${ch.token_count} words • Vector Indexed ✓</span>
+      listEl.innerHTML = chunks.map(ch => `
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; font-family: var(--font-mono);">
+            <span style="color: var(--primary-400); font-weight: 600;">Chunk #${ch.chunk_index} • Page ${ch.page_number}</span>
+            <span style="color: var(--text-muted);">${ch.token_count} tokens</span>
           </div>
-          <div class="chunk-card-text">${this.escapeHtml(ch.text)}</div>
+          <div style="font-size: 13px; line-height: 1.5; color: var(--text-secondary); font-family: var(--font-mono); white-space: pre-wrap; background: var(--bg-input); padding: 10px; border-radius: 6px;">
+            ${this.escapeHtml(ch.text_content)}
+          </div>
         </div>
       `).join('');
     } catch (err) {
-      container.innerHTML = `<div style="color: var(--accent-rose); padding: 14px;">Error: ${err.message}</div>`;
+      listEl.innerHTML = `<div style="color: var(--status-rose); text-align: center; padding: 20px;">Error: ${err.message}</div>`;
     }
   },
 
-  async deleteDocument(docId, docName) {
-    if (!confirm(`Are you sure you want to delete "${docName}" and remove its vector embeddings?`)) {
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/documents/${docId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete document');
-
-      showToast(`Document "${docName}" removed`, 'info');
-      await this.fetchDocuments();
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
+  escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   },
-
-  escapeHtml(text) {
-    if (!text) return '';
-    return text.replace(/[&<>"']/g, m => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
-    })[m]);
-  }
 };

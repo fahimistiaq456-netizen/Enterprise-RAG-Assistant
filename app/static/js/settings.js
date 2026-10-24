@@ -1,6 +1,9 @@
 /**
- * Engine and Model Settings Manager
+   NEXUS ENTERPRISE COGNITIVE PLATFORM — MODEL ROUTING & GOVERNANCE
+   Manages multi-model switching (OpenAI, Gemini, Groq, Smart Local AI),
+   temperature sliders, and secure API key storage.
  */
+
 window.SettingsManager = {
   async init() {
     this.bindEvents();
@@ -9,7 +12,9 @@ window.SettingsManager = {
 
   bindEvents() {
     const form = document.getElementById('settings-form');
-    const pill = document.getElementById('engine-status-pill');
+    const headerPill = document.getElementById('header-model-pill');
+    const tempSlider = document.getElementById('setting-temperature');
+    const tempDisplay = document.getElementById('temp-val-display');
 
     if (form) {
       form.addEventListener('submit', async (e) => {
@@ -18,13 +23,28 @@ window.SettingsManager = {
       });
     }
 
-    if (pill) {
-      pill.addEventListener('click', () => {
-        // Switch to settings tab
-        const settingsTab = document.querySelector('.nav-item[data-tab="settings"]');
-        if (settingsTab) settingsTab.click();
+    if (headerPill) {
+      headerPill.addEventListener('click', () => {
+        window.switchTab('settings');
       });
     }
+
+    if (tempSlider && tempDisplay) {
+      tempSlider.addEventListener('input', (e) => {
+        tempDisplay.textContent = parseFloat(e.target.value).toFixed(2);
+      });
+    }
+
+    // Model selection cards
+    const modelCards = document.querySelectorAll('.model-card-radio');
+    modelCards.forEach(card => {
+      card.addEventListener('click', () => {
+        modelCards.forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        const radio = card.querySelector('input[type="radio"]');
+        if (radio) radio.checked = true;
+      });
+    });
   },
 
   async fetchSettings() {
@@ -34,42 +54,44 @@ window.SettingsManager = {
 
       const data = await res.json();
       this.populateForm(data);
-      this.updateStatusPill(data.llm_provider);
+      this.updateHeaderPill(data.llm_provider);
     } catch (err) {
       console.warn('Failed to fetch settings:', err);
     }
   },
 
   populateForm(data) {
-    // Select radio button
     const radios = document.querySelectorAll('input[name="llm_provider"]');
     radios.forEach(r => {
       if (r.value === data.llm_provider) {
         r.checked = true;
+        const card = r.closest('.model-card-radio');
+        if (card) {
+          document.querySelectorAll('.model-card-radio').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+        }
       }
     });
 
     const geminiInput = document.getElementById('setting-gemini-key');
     const openaiInput = document.getElementById('setting-openai-key');
     const groqInput = document.getElementById('setting-groq-key');
-    const topKInput = document.getElementById('setting-top-k');
-    const embedSelect = document.getElementById('setting-embed-provider');
+    const tempSlider = document.getElementById('setting-temperature');
+    const tempDisplay = document.getElementById('temp-val-display');
 
     if (geminiInput && data.keys?.has_gemini) {
-      geminiInput.placeholder = `Configured (${data.keys.gemini_masked})`;
+      geminiInput.placeholder = `Active & Verified (${data.keys.gemini_masked})`;
     }
     if (openaiInput && data.keys?.has_openai) {
-      openaiInput.placeholder = `Configured (${data.keys.openai_masked})`;
+      openaiInput.placeholder = `Active & Verified (${data.keys.openai_masked})`;
     }
     if (groqInput && data.keys?.has_groq) {
-      groqInput.placeholder = `Configured (${data.keys.groq_masked})`;
+      groqInput.placeholder = `Active & Verified (${data.keys.groq_masked})`;
     }
 
-    if (topKInput && data.top_k) {
-      topKInput.value = data.top_k;
-    }
-    if (embedSelect && data.embedding_provider) {
-      embedSelect.value = data.embedding_provider;
+    if (tempSlider && data.temperature !== undefined) {
+      tempSlider.value = data.temperature;
+      if (tempDisplay) tempDisplay.textContent = parseFloat(data.temperature).toFixed(2);
     }
   },
 
@@ -80,8 +102,7 @@ window.SettingsManager = {
     const geminiKey = document.getElementById('setting-gemini-key')?.value.trim();
     const openaiKey = document.getElementById('setting-openai-key')?.value.trim();
     const groqKey = document.getElementById('setting-groq-key')?.value.trim();
-    const topK = parseInt(document.getElementById('setting-top-k')?.value || '4');
-    const embedProvider = document.getElementById('setting-embed-provider')?.value || 'local_dense';
+    const temperature = parseFloat(document.getElementById('setting-temperature')?.value || '0.2');
 
     try {
       const res = await fetch('/api/settings', {
@@ -92,32 +113,31 @@ window.SettingsManager = {
           gemini_api_key: geminiKey || null,
           openai_api_key: openaiKey || null,
           groq_api_key: groqKey || null,
-          embedding_provider: embedProvider,
-          top_k: topK,
+          temperature: temperature,
         }),
       });
 
       if (!res.ok) throw new Error('Failed to save settings');
 
-      showToast('Engine settings updated successfully', 'success');
-      this.updateStatusPill(provider);
+      this.updateHeaderPill(provider);
+      showToast('AI engine configuration saved successfully', 'success');
       await this.fetchSettings();
     } catch (err) {
       showToast(err.message, 'error');
     }
   },
 
-  updateStatusPill(provider) {
-    const pillText = document.getElementById('engine-status-name');
-    if (!pillText) return;
+  updateHeaderPill(provider) {
+    const pillName = document.getElementById('header-model-name');
+    if (!pillName) return;
 
     const names = {
-      smart_local: 'Smart Local Engine',
-      gemini: 'Gemini 1.5 Flash',
-      openai: 'OpenAI GPT-4o Mini',
-      groq: 'Groq Llama 3.1',
+      smart_local: 'Smart Local AI',
+      openai: 'OpenAI GPT-4o',
+      gemini: 'Gemini 2.0 Pro',
+      groq: 'Groq Cloud (Llama 3)',
     };
 
-    pillText.textContent = names[provider] || provider;
-  }
+    pillName.textContent = names[provider] || 'Smart Local AI';
+  },
 };

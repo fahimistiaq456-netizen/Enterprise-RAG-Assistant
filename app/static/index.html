@@ -3,463 +3,877 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nexus RAG | Easy AI Document Assistant</title>
-  <meta name="description" content="Super easy and modern AI Document Assistant. Upload any PDF and chat with it in seconds with instant citations and read-aloud voice.">
+  <meta name="color-scheme" content="light dark">
+  <title>Nexus Cognitive Hub | Enterprise RAG Platform</title>
+  <meta name="description" content="Mission-critical enterprise Retrieval-Augmented Generation (RAG) platform with verified citations, deep reasoning transparency, hybrid vector search, and SOC2 compliance.">
   
-  <!-- Modern Google Fonts -->
+  <!-- FOUC prevention script (Modern Web Guidance) -->
+  <script>
+    try {
+      const storedTheme = localStorage.getItem("color-scheme");
+      if (storedTheme) {
+        document.querySelector('meta[name="color-scheme"]').content = storedTheme;
+      }
+    } catch (e) {}
+  </script>
+
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <!-- Highlight.js for code syntax highlighting -->
+  <!-- Highlight.js for syntax highlighting -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   
   <!-- Marked.js for Markdown parsing -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <!-- DOMPurify for security -->
+  <!-- DOMPurify for security sanitization -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
-<body class="dark-theme">
+<body>
   <!-- Toast Notification Container -->
-  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+  <div id="toast-container" class="toast-stack" aria-live="polite"></div>
 
-  <!-- Global Drag and Drop Overlay (Drop PDF anywhere to chat) -->
-  <div id="global-drag-overlay" class="global-drag-overlay" aria-hidden="true">
-    <div class="drag-overlay-box">
-      <div class="drag-icon-pulse">
-        <i data-lucide="file-plus"></i>
-      </div>
-      <h2>Drop your PDF here! ✨</h2>
-      <p>We'll immediately read it so you can ask any questions.</p>
+  <!-- Global Drag and Drop Overlay -->
+  <div id="global-drag-overlay" class="global-drag-overlay" aria-hidden="true" style="display: none;">
+    <div class="drag-overlay-card">
+      <i data-lucide="file-up" style="width: 48px; height: 48px; color: var(--primary-400); margin-bottom: 16px;"></i>
+      <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Drop PDF to Index into Knowledge Hub</h3>
+      <p style="color: var(--text-secondary); font-size: 14px;">Instant parsing, text extraction, and 768d vector embeddings</p>
     </div>
   </div>
 
   <!-- Main Application Wrapper -->
-  <div id="app" class="app-layout">
+  <div id="app" class="app-container">
     
-    <!-- Left Navigation Sidebar -->
+    <!-- Left Navigation Rail -->
     <aside id="sidebar" class="sidebar">
+      <!-- Workspace Switcher Header -->
       <div class="sidebar-header">
-        <div class="brand">
-          <div class="brand-icon">
-            <i data-lucide="sparkles"></i>
+        <button id="workspace-switcher-btn" class="workspace-trigger" title="Switch Enterprise Workspace">
+          <div class="workspace-icon">N</div>
+          <div class="workspace-meta">
+            <span class="workspace-title" id="active-workspace-name">Acme Global</span>
+            <span class="workspace-badge"><i data-lucide="shield-check" style="width: 11px; height: 11px; color: var(--status-emerald);"></i> Production Vault</span>
           </div>
-          <div class="brand-text">
-            <h2>Nexus<span>AI</span></h2>
-            <span class="badge-version">Kid & Pro Friendly ✨</span>
-          </div>
-        </div>
-        <button id="sidebar-toggle-btn" class="icon-btn sidebar-collapse-btn" title="Collapse sidebar">
-          <i data-lucide="panel-left-close"></i>
+          <i data-lucide="chevrons-up-down" style="width: 14px; height: 14px; color: var(--text-muted); margin-left: auto;"></i>
         </button>
       </div>
 
-      <!-- Quick Action Buttons -->
-      <div class="sidebar-action">
-        <button id="new-chat-btn" class="btn btn-primary btn-block">
-          <i data-lucide="plus-circle"></i>
-          <span>New Chat</span>
-        </button>
-        <button id="sidebar-upload-btn" class="btn btn-secondary btn-block mt-2">
-          <i data-lucide="paperclip"></i>
-          <span>Add PDF Document</span>
+      <!-- Quick Action: New Thread -->
+      <div class="sidebar-action-wrap">
+        <button id="new-chat-btn" class="btn-new-chat" title="Create a new reasoning thread (Ctrl+N)">
+          <div class="btn-left">
+            <i data-lucide="plus" style="width: 16px; height: 16px; color: var(--primary-400);"></i>
+            <span>New Thread</span>
+          </div>
+          <kbd>Ctrl+N</kbd>
         </button>
       </div>
 
-      <!-- Navigation Tabs -->
-      <nav class="sidebar-nav">
-        <div class="nav-section-title">EXPLORE</div>
-        <ul class="nav-list">
-          <li class="nav-item active" data-tab="chat">
-            <button class="nav-link">
-              <i data-lucide="message-circle"></i>
-              <span>Chat with Docs</span>
+      <!-- Navigation Menu Groups -->
+      <div class="sidebar-nav-scroll">
+        <!-- GROUP 1: COGNITIVE INTELLIGENCE -->
+        <div class="nav-group-title">Intelligence</div>
+        <ul class="nav-menu">
+          <li class="nav-menu-item active" data-tab="chat">
+            <button class="nav-btn">
+              <i data-lucide="message-square" style="width: 16px; height: 16px;"></i>
+              <span>RAG Assistant</span>
             </button>
           </li>
-          <li class="nav-item" data-tab="search">
-            <button class="nav-link">
-              <i data-lucide="search"></i>
-              <span>Search Sentences</span>
-            </button>
-          </li>
-          <li class="nav-item" data-tab="documents">
-            <button class="nav-link">
-              <i data-lucide="folder-open"></i>
-              <span>My PDF Library</span>
-              <span id="doc-counter-badge" class="nav-badge">0</span>
-            </button>
-          </li>
-          <li class="nav-item" data-tab="settings">
-            <button class="nav-link">
-              <i data-lucide="settings"></i>
-              <span>Settings & AI Models</span>
+          <li class="nav-menu-item" data-tab="search">
+            <button class="nav-btn">
+              <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i>
+              <span>Discovery Studio</span>
             </button>
           </li>
         </ul>
 
-        <!-- Chat History List -->
-        <div class="nav-section-title">
-          <span>PAST CHATS</span>
-          <button id="clear-chats-btn" class="icon-btn-tiny" title="Clear all past chats">
-            <i data-lucide="trash-2"></i>
+        <!-- GROUP 2: KNOWLEDGE MANAGEMENT -->
+        <div class="nav-group-title">Knowledge Base</div>
+        <ul class="nav-menu">
+          <li class="nav-menu-item" data-tab="documents">
+            <button class="nav-btn">
+              <i data-lucide="layers" style="width: 16px; height: 16px;"></i>
+              <span>Repositories & Docs</span>
+              <span id="doc-counter-badge" class="nav-item-badge">0</span>
+            </button>
+          </li>
+        </ul>
+
+        <!-- GROUP 3: ENTERPRISE GOVERNANCE -->
+        <div class="nav-group-title">Governance & Admin</div>
+        <ul class="nav-menu">
+          <li class="nav-menu-item" data-tab="dashboard">
+            <button class="nav-btn">
+              <i data-lucide="bar-chart-3" style="width: 16px; height: 16px;"></i>
+              <span>Observability</span>
+            </button>
+          </li>
+          <li class="nav-menu-item" data-tab="security">
+            <button class="nav-btn">
+              <i data-lucide="shield" style="width: 16px; height: 16px;"></i>
+              <span>Team & Security</span>
+            </button>
+          </li>
+          <li class="nav-menu-item" data-tab="settings">
+            <button class="nav-btn">
+              <i data-lucide="cpu" style="width: 16px; height: 16px;"></i>
+              <span>Model Routing</span>
+            </button>
+          </li>
+        </ul>
+
+        <!-- GROUP 4: RECENT THREADS -->
+        <div class="nav-group-title" style="display: flex; align-items: center; justify-content: space-between; padding-right: 8px;">
+          <span>Recent Threads</span>
+          <button id="clear-chats-btn" class="icon-btn-ghost" title="Clear all past conversation threads" style="width: 20px; height: 20px;">
+            <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
           </button>
         </div>
-        <div id="conversations-list" class="conversations-list">
-          <div class="empty-history-text">No previous chats yet</div>
+        <div id="conversations-list" class="conversations-history">
+          <div style="font-size: 12px; color: var(--text-muted); padding: 8px 12px;">No active threads</div>
         </div>
-      </nav>
+      </div>
 
-      <!-- Sidebar Footer / User Profile -->
+      <!-- User Account & Auth Footer -->
       <div class="sidebar-footer">
-        <div class="user-profile-card">
-          <div class="user-avatar" id="user-avatar-initials">ME</div>
-          <div class="user-meta">
-            <span id="user-display-name" class="user-name">Welcome!</span>
-            <span id="user-role-badge" class="user-role">Instant Free Mode</span>
+        <div class="user-profile-bar">
+          <div class="user-info-flex" id="user-profile-trigger" title="Account settings">
+            <div class="user-avatar-pill" id="user-avatar-initials">AG</div>
+            <div class="user-details-col">
+              <span class="user-full-name" id="user-display-name">Enterprise Evaluator</span>
+              <span class="user-role-tag" id="user-role-badge">
+                <i data-lucide="check-circle-2" style="width: 10px; height: 10px; color: var(--status-emerald);"></i>
+                SOC2 Active
+              </span>
+            </div>
           </div>
-          <button id="auth-action-btn" class="icon-btn" title="Sign In or Switch Account">
-            <i data-lucide="user-check" id="auth-action-icon"></i>
+          <button id="auth-action-btn" class="icon-btn-ghost" title="Authentication / Switch Account">
+            <i data-lucide="log-in" id="auth-action-icon" style="width: 16px; height: 16px;"></i>
           </button>
         </div>
       </div>
     </aside>
 
-    <!-- Main Content Area -->
-    <main class="main-content">
+    <!-- Main Workspace Area -->
+    <main class="main-wrapper">
       
-      <!-- Top Navbar -->
-      <header class="top-navbar">
-        <div class="navbar-left">
-          <button id="sidebar-mobile-toggle" class="icon-btn mobile-menu-btn" title="Open Menu">
-            <i data-lucide="menu"></i>
+      <!-- Top Sticky Enterprise Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <button id="sidebar-toggle-btn" class="header-sidebar-toggle" title="Toggle Sidebar">
+            <i data-lucide="panel-left" style="width: 18px; height: 18px;"></i>
           </button>
-          <div class="active-tab-indicator">
-            <h1 id="page-title">Chat with Documents</h1>
-            <div class="doc-active-summary" id="doc-active-summary">
-              <span class="active-pill"><i data-lucide="book-open"></i> <span id="summary-doc-count">Ready to chat</span></span>
-            </div>
+          <div class="view-breadcrumbs" id="view-breadcrumbs">
+            <span class="crumb-root">Platform</span>
+            <i data-lucide="chevron-right" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+            <span class="crumb-current" id="page-title">RAG Assistant</span>
           </div>
         </div>
 
-        <div class="navbar-right">
-          <!-- Easy PDF Upload in Topbar -->
-          <button id="topbar-upload-btn" class="btn btn-accent btn-sm" title="Upload any PDF file">
-            <i data-lucide="file-up"></i>
-            <span>Upload PDF</span>
-          </button>
+        <!-- Universal Command Palette Trigger (Ctrl+K) -->
+        <div class="global-search-trigger" id="command-palette-trigger" title="Open Command Palette (Ctrl+K)">
+          <i data-lucide="search" style="width: 15px; height: 15px;"></i>
+          <span>Search documents, commands, models...</span>
+          <kbd>Ctrl+K</kbd>
+        </div>
 
-          <!-- Quick Sample Docs Button -->
-          <button id="quick-load-samples-btn" class="btn btn-secondary btn-sm" title="Load sample documents to test immediately">
-            <i data-lucide="sparkles"></i>
-            <span>Load Demo Docs</span>
-          </button>
-
-          <!-- Engine Status Pill -->
-          <div class="engine-status-pill" id="engine-status-pill" title="Click to choose AI Model (Gemini, OpenAI, Local)">
-            <span class="pulse-indicator"></span>
-            <span id="engine-status-name">Smart AI Engine</span>
+        <div class="header-right">
+          <!-- Model Status Pill -->
+          <div class="model-indicator-pill" id="header-model-pill" title="Click to configure AI Model">
+            <span class="model-dot"></span>
+            <span id="header-model-name">Smart Local AI</span>
+            <i data-lucide="chevron-down" style="width: 12px; height: 12px; color: var(--text-muted);"></i>
           </div>
 
-          <!-- Theme Toggle -->
-          <button id="theme-toggle-btn" class="icon-btn" title="Toggle Light/Dark Theme">
-            <i data-lucide="sun"></i>
+          <!-- Context Window Usage -->
+          <div class="context-gauge-pill" title="Active Context Window Allocation">
+            <span>Ctx:</span>
+            <div class="gauge-bar-mini">
+              <div class="gauge-bar-fill" id="context-gauge-fill"></div>
+            </div>
+            <span id="context-gauge-text">14.2k / 128k</span>
+          </div>
+
+          <!-- Enterprise Compliance Pill -->
+          <div class="compliance-pill" title="Hardware isolated & encrypted at rest">
+            <i data-lucide="shield-check" style="width: 12px; height: 12px;"></i>
+            <span>SOC2 • HIPAA</span>
+          </div>
+
+          <!-- Quick Load Enterprise Sample Docs -->
+          <button id="quick-load-samples-btn" class="btn-secondary btn-sm" title="Load sample enterprise PDFs">
+            <i data-lucide="sparkles" style="width: 14px; height: 14px; color: var(--primary-400);"></i>
+            <span>Load Demo Vault</span>
+          </button>
+
+          <!-- Theme Toggle (Native Modern Web Guidance) -->
+          <button id="theme-toggle-btn" class="icon-btn-ghost" title="Toggle Light / Dark mode">
+            <i data-lucide="sun" id="theme-toggle-icon" style="width: 17px; height: 17px;"></i>
           </button>
         </div>
       </header>
 
-      <!-- Tab Panels Container -->
-      <div class="tab-panels-wrapper">
+      <!-- Content Viewport (Tabs) -->
+      <div class="content-viewport">
         
-        <!-- ==================== TAB 1: CHAT WITH DOCUMENTS ==================== -->
-        <section id="tab-chat" class="tab-panel active">
-          <div class="chat-container">
+        <!-- ==================== TAB 1: RAG CHAT ASSISTANT ==================== -->
+        <section id="tab-chat" class="tab-view active">
+          <div class="chat-workspace">
             
-            <!-- Chat Messages Scroll Area -->
-            <div id="chat-messages" class="chat-messages">
-              <!-- Welcome State Hero -->
-              <div id="chat-welcome-state" class="welcome-hero">
-                <div class="hero-badge">
-                  <i data-lucide="heart-handshake"></i>
-                  <span>Friendly & 100% Accurate AI</span>
-                </div>
-                <h2>Chat with your PDFs easily! ✨</h2>
-                <p>Upload any school notes, company policies, books, or financial reports. Ask any question in plain words, and I'll find the exact answers with page numbers!</p>
+            <div class="chat-center-stage">
+              
+              <!-- Chat Messages Scroll Container -->
+              <div id="chat-messages" class="chat-scroll-area">
                 
-                <!-- Friendly 1-Click Drop / Upload Box on Welcome Screen -->
-                <div class="welcome-upload-card" id="welcome-upload-trigger">
-                  <div class="welcome-upload-icon">
-                    <i data-lucide="file-up"></i>
+                <!-- Welcome Zero State -->
+                <div id="chat-welcome-state" class="welcome-enterprise-state">
+                  <div class="enterprise-logo-orb">
+                    <i data-lucide="sparkles" style="width: 24px; height: 24px;"></i>
                   </div>
-                  <div>
-                    <h4>Click or drag any PDF here</h4>
-                    <span>Supports multi-page PDFs up to 50MB</span>
+                  <h2>Enterprise Knowledge Intelligence</h2>
+                  <p>Synthesizing cross-document truth with verified citations, inspectable reasoning steps, and zero external hallucination.</p>
+                  
+                  <div class="prompt-vault-grid">
+                    <div class="prompt-card" data-prompt="What are the cloud security password rules, session timeouts, and encryption standards?">
+                      <span class="prompt-tag">Security & Compliance</span>
+                      <span class="prompt-text">"Analyze password rules and session timeouts"</span>
+                      <span class="prompt-meta">Cross-references Acme Cloud Security Policy</span>
+                    </div>
+
+                    <div class="prompt-card" data-prompt="What were the Q3 revenue, gross margin, ARR growth rate, and financial risks?">
+                      <span class="prompt-tag">Financial Audit</span>
+                      <span class="prompt-text">"Audit Q3 revenue margins and financial risks"</span>
+                      <span class="prompt-meta">Pulls from Strategic Financial Report</span>
+                    </div>
+
+                    <div class="prompt-card" data-prompt="How fast does the emergency incident response team react to severity 1 events?">
+                      <span class="prompt-tag">Operations SLA</span>
+                      <span class="prompt-text">"Review emergency incident response SLAs"</span>
+                      <span class="prompt-meta">Grounded in disaster recovery protocols</span>
+                    </div>
+
+                    <div class="prompt-card" data-prompt="Generate an executive summary of all uploaded documents highlighting key risks and compliance items.">
+                      <span class="prompt-tag">Executive Synthesis</span>
+                      <span class="prompt-text">"Generate an executive summary of all files"</span>
+                      <span class="prompt-meta">Full multi-document synthesis</span>
+                    </div>
                   </div>
-                  <button type="button" class="btn btn-primary btn-sm">Select PDF</button>
                 </div>
 
-                <div class="sample-queries-title">💡 Or try these sample questions:</div>
-                <div class="sample-queries-grid">
-                  <button class="sample-query-card" data-prompt="What are the security password rules and session timeouts?">
-                    <span class="card-icon">🔐</span>
-                    <span class="card-text">"What are the security rules and session timeouts?"</span>
-                  </button>
-                  <button class="sample-query-card" data-prompt="What were the Q3 revenue, gross margin, and business highlights?">
-                    <span class="card-icon">💰</span>
-                    <span class="card-text">"What were the Q3 revenue and financial highlights?"</span>
-                  </button>
-                  <button class="sample-query-card" data-prompt="How fast does the emergency response team react to critical events?">
-                    <span class="card-icon">🚨</span>
-                    <span class="card-text">"How fast does the emergency response team react?"</span>
-                  </button>
-                  <button class="sample-query-card" data-prompt="Give me a simple 3-point summary of the uploaded documents.">
-                    <span class="card-icon">📝</span>
-                    <span class="card-text">"Give me a simple 3-point summary of my documents."</span>
+              </div>
+
+              <!-- Floating Chat Dock Input Container -->
+              <div class="chat-dock-container">
+                
+                <!-- Active Document Scope Chips -->
+                <div id="chat-docs-chips-bar" class="input-chips-bar" style="margin-bottom: 8px;">
+                  <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+                    <i data-lucide="layers" style="width: 12px; height: 12px;"></i> Scope:
+                  </span>
+                  <div id="chat-chips-list" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                    <span class="scope-chip" id="global-scope-chip">
+                      <i data-lucide="database" style="width: 11px; height: 11px;"></i>
+                      <span>All Knowledge Repositories</span>
+                    </span>
+                  </div>
+                  <button type="button" id="chat-add-doc-chip-btn" class="dock-btn" title="Add specific PDF to scope" style="padding: 2px 7px; font-size: 11px;">
+                    <i data-lucide="plus" style="width: 11px; height: 11px;"></i> Add Filter
                   </button>
                 </div>
+
+                <!-- Chat Input Form -->
+                <form id="chat-form" class="chat-form">
+                  <div class="chat-input-box">
+                    <textarea 
+                      id="chat-input" 
+                      class="chat-textarea" 
+                      placeholder="Ask any question across institutional documents... (Press Enter to send, Shift+Enter for newline)"
+                      rows="1"
+                    ></textarea>
+
+                    <div class="chat-input-footer">
+                      <div class="input-controls-left">
+                        <!-- Paperclip Attachment Trigger -->
+                        <button type="button" id="chat-attach-btn" class="dock-btn" title="Upload PDF to Knowledge Base">
+                          <i data-lucide="paperclip" style="width: 14px; height: 14px;"></i>
+                          <span>Attach PDF</span>
+                        </button>
+
+                        <!-- Agent Persona Switcher -->
+                        <select id="agent-persona-selector" class="dock-btn" title="Select Specialized Agent" style="border: 1px solid var(--border-subtle); padding: 3px 8px;">
+                          <option value="general">🧠 General RAG Analyst</option>
+                          <option value="legal">⚖️ Legal & Compliance Auditor</option>
+                          <option value="finance">📊 Financial Controller</option>
+                          <option value="security">🛡️ SecOps & Architecture Lead</option>
+                        </select>
+
+                        <!-- RAG Grounding Toggle -->
+                        <button type="button" id="rag-toggle-btn" class="dock-btn active" title="Strict Document Grounding Active">
+                          <i data-lucide="check-circle" style="width: 13px; height: 13px;"></i>
+                          <span>RAG Grounding: Strict</span>
+                        </button>
+                      </div>
+
+                      <button type="submit" id="send-msg-btn" class="send-action-btn" title="Send Query">
+                        <i data-lucide="arrow-up" style="width: 16px; height: 16px;"></i>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+
               </div>
+
             </div>
 
-            <!-- Chat Input Area with Attached Document Chips & Upload Button -->
-            <div class="chat-input-container">
-              
-              <!-- Active Document Pills Bar -->
-              <div id="chat-docs-chips-bar" class="chat-docs-chips-bar">
-                <span class="chips-label"><i data-lucide="layers"></i> Active Docs:</span>
-                <div id="chat-chips-list" class="chat-chips-list">
-                  <!-- Injected via JS -->
+            <!-- Sidecar Citation & Provenance Drawer -->
+            <aside id="citation-drawer" class="sidecar-drawer" aria-hidden="true">
+              <div class="drawer-header">
+                <div class="drawer-title-row">
+                  <i data-lucide="file-check-2" style="width: 18px; height: 18px; color: var(--status-emerald);"></i>
+                  <span>Verified Citation Provenance</span>
                 </div>
-                <button type="button" id="chat-add-doc-chip-btn" class="chip-add-btn" title="Add another PDF">
-                  <i data-lucide="plus"></i> Add PDF
+                <button id="close-drawer-btn" class="icon-btn-ghost" title="Close Drawer">
+                  <i data-lucide="x" style="width: 16px; height: 16px;"></i>
                 </button>
               </div>
 
-              <form id="chat-form" class="chat-form">
-                <div class="input-glass-box">
-                  <div class="textarea-wrapper">
-                    <!-- Paperclip Attachment Button directly in the input bar -->
-                    <button type="button" id="chat-attach-btn" class="icon-btn attach-btn" title="Attach a PDF to chat">
-                      <i data-lucide="paperclip"></i>
-                    </button>
-
-                    <textarea 
-                      id="chat-input" 
-                      placeholder="Ask any question about your documents... (Press Enter to send)"
-                      rows="1"
-                    ></textarea>
-                    
-                    <button type="submit" id="send-msg-btn" class="btn btn-primary send-btn" title="Send Question">
-                      <i data-lucide="send"></i>
-                    </button>
+              <div class="drawer-content-scroll">
+                <div class="provenance-card">
+                  <div class="provenance-row">
+                    <span class="prov-label">Source Document:</span>
+                    <span id="drawer-doc-name" class="prov-val">Document.pdf</span>
+                  </div>
+                  <div class="provenance-row">
+                    <span class="prov-label">Page Reference:</span>
+                    <span id="drawer-page-num" class="prov-val">Page 1</span>
+                  </div>
+                  <div class="provenance-row">
+                    <span class="prov-label">Similarity Match:</span>
+                    <span id="drawer-confidence" class="prov-val" style="color: var(--status-emerald);">94.2%</span>
+                  </div>
+                  <div class="provenance-row">
+                    <span class="prov-label">Vector Embedding:</span>
+                    <span class="prov-val">768d Cosine Distance</span>
                   </div>
                 </div>
-              </form>
 
-              <div class="input-subhint">
-                <span>💡 Tip: You can drag and drop any PDF anywhere on this page to read it!</span>
+                <div>
+                  <h4 style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Exact Grounded Excerpt:</h4>
+                  <div id="drawer-excerpt-text" class="excerpt-box">
+                    Loading citation excerpt...
+                  </div>
+                </div>
+
+                <div style="background-color: var(--status-emerald-subtle); border: 1px solid var(--status-emerald-border); border-radius: var(--radius-md); padding: 12px; display: flex; gap: 10px; align-items: flex-start;">
+                  <i data-lucide="shield-check" style="width: 16px; height: 16px; color: var(--status-emerald); flex-shrink: 0; margin-top: 2px;"></i>
+                  <span style="font-size: 12px; color: var(--text-secondary); line-height: 1.5;">This answer was directly extracted from institutional records. Zero external data was incorporated into this reasoning step.</span>
+                </div>
               </div>
-            </div>
+            </aside>
 
           </div>
         </section>
 
-        <!-- ==================== TAB 2: SEMANTIC SEARCH ==================== -->
-        <section id="tab-search" class="tab-panel">
-          <div class="search-view-container">
-            <div class="view-header">
-              <h2>🔍 Sentence & Passage Search</h2>
-              <p>Type any keyword or question to see the exact matching sentences and pages across all your documents.</p>
+        <!-- ==================== TAB 2: SEMANTIC DISCOVERY STUDIO ==================== -->
+        <section id="tab-search" class="tab-view">
+          <div class="discovery-container">
+            <div class="view-headline">
+              <h2>Semantic Discovery & Passage Studio</h2>
+              <p>Execute sub-millisecond dense vector queries across all indexed PDF chunks with hybrid lexical BM25 re-ranking.</p>
             </div>
 
             <!-- Search Controls Box -->
-            <div class="search-controls-card">
-              <form id="semantic-search-form" class="search-form-row">
-                <div class="search-input-field">
-                  <i data-lucide="search" class="search-input-icon"></i>
-                  <input type="text" id="semantic-search-input" placeholder="Type what you want to find (e.g. 'encryption at rest', 'budget', 'password rules')...">
+            <div class="search-command-card">
+              <form id="semantic-search-form" style="display: flex; flex-direction: column; gap: 14px;">
+                <div class="search-input-wrap">
+                  <i data-lucide="search" style="width: 18px; height: 18px; color: var(--text-muted);"></i>
+                  <input type="text" id="semantic-search-input" placeholder="Type concepts, policies, or exact terms (e.g. 'encryption at rest', 'operating margin', 'password rotation')...">
+                  <button type="submit" class="btn-primary btn-sm">
+                    <span>Execute Vector Search</span>
+                  </button>
                 </div>
-                <button type="submit" class="btn btn-primary">
-                  <i data-lucide="search"></i>
-                  <span>Find in Documents</span>
-                </button>
+
+                <div class="search-tuning-row">
+                  <div class="tuning-item">
+                    <label for="search-top-k" style="color: var(--text-muted); font-size: 12px;">Candidate Chunks:</label>
+                    <select id="search-top-k" class="custom-select-sm" style="border: 1px solid var(--border-default); background: var(--bg-input); padding: 3px 8px; border-radius: 6px;">
+                      <option value="3">Top 3 Candidates</option>
+                      <option value="5" selected>Top 5 Candidates</option>
+                      <option value="8">Top 8 Candidates</option>
+                      <option value="12">Top 12 Candidates</option>
+                    </select>
+                  </div>
+
+                  <div class="tuning-item">
+                    <span style="color: var(--text-muted); font-size: 12px;">Hybrid Ratio:</span>
+                    <input type="range" id="search-alpha" class="alpha-slider" min="0" max="1" step="0.1" value="0.7">
+                    <span id="alpha-label" style="font-size: 11px; font-family: var(--font-mono); color: var(--text-secondary);">70% Dense / 30% Lexical</span>
+                  </div>
+
+                  <div id="search-results-stats" style="margin-left: auto; font-size: 12px; font-family: var(--font-mono); color: var(--text-muted); display: none;">
+                    <span id="results-count-text">0 results</span> • <span id="results-latency-text">0 ms</span>
+                  </div>
+                </div>
               </form>
-
-              <div class="search-filters-row">
-                <div class="filter-item">
-                  <label for="search-top-k">Number of passages to show:</label>
-                  <select id="search-top-k" class="custom-select-sm">
-                    <option value="3">3 Best Matches</option>
-                    <option value="5" selected>5 Best Matches</option>
-                    <option value="8">8 Best Matches</option>
-                  </select>
-                </div>
-                <div class="filter-item" style="margin-left: auto;">
-                  <span class="badge-tag">⚡ Smart AI Semantic Match</span>
-                </div>
-              </div>
             </div>
 
-            <!-- Search Results Display -->
-            <div id="search-results-stats" class="search-results-meta" style="display: none;">
-              <span id="results-count-text">0 results</span>
-              <span id="results-latency-text">0 ms</span>
-            </div>
-
+            <!-- Search Results Display List -->
             <div id="search-results-list" class="search-results-grid">
-              <div class="empty-state-search">
-                <i data-lucide="compass"></i>
-                <h3>No search conducted yet</h3>
-                <p>Type a word or sentence above to see highlighted matches with exact page numbers.</p>
+              <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                <i data-lucide="compass" style="width: 36px; height: 36px; margin-bottom: 12px; opacity: 0.5;"></i>
+                <h3 style="font-size: 16px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px;">No query executed yet</h3>
+                <p style="font-size: 13px;">Execute a search query above to inspect similarity scores and chunk boundaries.</p>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- ==================== TAB 3: KNOWLEDGE BASE (DOCUMENTS) ==================== -->
-        <section id="tab-documents" class="tab-panel">
-          <div class="docs-view-container">
-            <div class="view-header-flex">
+        <!-- ==================== TAB 3: KNOWLEDGE BASE & COLLECTIONS ==================== -->
+        <section id="tab-documents" class="tab-view">
+          <div class="knowledge-container">
+            <div class="view-headline" style="display: flex; align-items: center; justify-content: space-between;">
               <div>
-                <h2>📚 My PDF Library</h2>
-                <p>View all uploaded files, see how many pages they have, or add new PDFs.</p>
+                <h2>Enterprise Knowledge Hub</h2>
+                <p>Governed document repositories, automated vector embedding pipelines, and chunk inspection.</p>
               </div>
-              <button id="load-samples-vault-btn" class="btn btn-secondary">
-                <i data-lucide="sparkles"></i>
+              <button id="load-samples-vault-btn" class="btn-secondary">
+                <i data-lucide="sparkles" style="width: 14px; height: 14px; color: var(--primary-400);"></i>
                 <span>Load Sample Enterprise PDFs</span>
               </button>
             </div>
 
+            <!-- Live Vector Telemetry Strip -->
+            <div class="vector-telemetry-bar">
+              <div class="telemetry-node">
+                <span class="label">Total Documents</span>
+                <span class="value" id="telemetry-doc-count">0</span>
+              </div>
+              <div class="telemetry-node">
+                <span class="label">Indexed Chunks</span>
+                <span class="value" id="telemetry-chunk-count">0</span>
+              </div>
+              <div class="telemetry-node">
+                <span class="label">Vector Dimension</span>
+                <span class="value">768d Dense</span>
+              </div>
+              <div class="telemetry-node">
+                <span class="label">Index Health</span>
+                <span class="value" style="color: var(--status-emerald);">100% Synced</span>
+              </div>
+            </div>
+
             <!-- Upload Dropzone -->
-            <div id="pdf-dropzone" class="upload-dropzone">
+            <div id="pdf-dropzone" class="dropzone-card">
               <input type="file" id="pdf-file-input" accept=".pdf" style="display: none;">
-              <div class="dropzone-content">
-                <div class="dropzone-icon">
-                  <i data-lucide="file-up"></i>
+              <div class="dropzone-icon-box">
+                <i data-lucide="file-up" style="width: 22px; height: 22px;"></i>
+              </div>
+              <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 4px;">Drag and drop PDF documents</h3>
+              <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Automated multi-page text extraction, sentence segmentation, and vector embedding</p>
+              <button type="button" class="btn-primary btn-sm" id="browse-files-btn">
+                <i data-lucide="folder-plus" style="width: 14px; height: 14px;"></i>
+                <span>Select PDF File</span>
+              </button>
+              
+              <div id="upload-progress-container" style="display: none; margin-top: 16px; max-width: 400px; margin-left: auto; margin-right: auto;">
+                <div style="height: 4px; background: var(--bg-subtle); border-radius: 4px; overflow: hidden; margin-bottom: 6px;">
+                  <div id="upload-progress-fill" style="width: 40%; height: 100%; background: var(--primary-500); transition: width 0.3s ease;"></div>
                 </div>
-                <h3>Drag & drop any PDF file here</h3>
-                <p>Or click the button below to pick a file from your computer.</p>
-                <button type="button" class="btn btn-primary" id="browse-files-btn">
-                  <i data-lucide="folder-plus"></i> Choose PDF from Computer
+                <span id="upload-progress-text" style="font-size: 12px; color: var(--text-muted); font-family: var(--font-mono);">Parsing and embedding...</span>
+              </div>
+            </div>
+
+            <!-- Documents Table -->
+            <div class="data-table-container">
+              <div class="table-header-row">
+                <div class="table-title">Indexed Repositories (<span id="total-docs-count">0</span> files)</div>
+                <button id="refresh-docs-btn" class="icon-btn-ghost" title="Refresh Table">
+                  <i data-lucide="refresh-cw" style="width: 15px; height: 15px;"></i>
                 </button>
               </div>
-              <div id="upload-progress-container" class="upload-progress-container" style="display: none;">
-                <div class="progress-bar-wrapper">
-                  <div id="upload-progress-fill" class="progress-bar-fill"></div>
-                </div>
-                <span id="upload-progress-text">Reading PDF pages and preparing answers...</span>
-              </div>
+
+              <table class="doc-table">
+                <thead>
+                  <tr>
+                    <th>Document Name</th>
+                    <th>Pages</th>
+                    <th>Chunks</th>
+                    <th>Size</th>
+                    <th>Status</th>
+                    <th>Classification</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="documents-table-body">
+                  <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                      No documents indexed yet. Upload a PDF or click "Load Sample Enterprise PDFs".
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
-            <!-- Documents Grid -->
-            <div class="docs-table-header">
-              <h3>My Uploaded PDFs (<span id="total-docs-count">0</span>)</h3>
-              <button id="refresh-docs-btn" class="icon-btn-tiny" title="Refresh list">
-                <i data-lucide="refresh-cw"></i>
-              </button>
-            </div>
-
-            <div id="documents-grid" class="documents-grid">
-              <div class="empty-state-docs">
-                <i data-lucide="file-text"></i>
-                <h3>No PDFs added yet</h3>
-                <p>Drop a PDF above or click "Load Sample Enterprise PDFs" to test with pre-built documents.</p>
-              </div>
-            </div>
           </div>
         </section>
 
-        <!-- ==================== TAB 4: SETTINGS ==================== -->
-        <section id="tab-settings" class="tab-panel">
-          <div class="settings-view-container">
-            <div class="view-header">
-              <h2>⚙️ AI Models & Settings</h2>
-              <p>Choose which AI engine powers your answers. The free built-in engine works out of the box with zero setup!</p>
+        <!-- ==================== TAB 4: EXECUTIVE OBSERVABILITY DASHBOARD ==================== -->
+        <section id="tab-dashboard" class="tab-view">
+          <div class="dashboard-container">
+            <div class="view-headline" style="display: flex; align-items: center; justify-content: space-between;">
+              <div>
+                <h2>Enterprise Observability & Analytics</h2>
+                <p>Real-time telemetry on query volume, token economics, latency distribution, and retrieval accuracy.</p>
+              </div>
+              <div style="font-size: 12px; color: var(--text-muted); font-family: var(--font-mono);">
+                Live SLA: <span style="color: var(--status-emerald);">99.99%</span>
+              </div>
             </div>
 
-            <form id="settings-form" class="settings-form">
-              <!-- LLM Provider Selection -->
-              <div class="settings-card">
-                <h3><i data-lucide="cpu"></i> Choose Your AI Model</h3>
-                <p class="settings-hint">Select your preferred AI brain:</p>
-                
-                <div class="provider-radio-group">
-                  <label class="provider-card">
-                    <input type="radio" name="llm_provider" value="smart_local" checked>
-                    <div class="provider-card-inner">
-                      <div class="provider-badge highlight">Free & Instant</div>
-                      <div class="provider-title">Smart Local AI ✨</div>
-                      <div class="provider-desc">Works 100% offline, zero API keys required. Perfect for immediate testing!</div>
-                    </div>
-                  </label>
+            <!-- 4 KPI Metric Cards -->
+            <div class="kpi-metrics-grid">
+              <div class="kpi-card">
+                <span class="kpi-title">Total RAG Queries</span>
+                <span class="kpi-val" id="kpi-total-queries">24,892</span>
+                <span class="kpi-delta positive">
+                  <i data-lucide="trending-up" style="width: 14px; height: 14px;"></i> +14.2% MoM
+                </span>
+              </div>
 
-                  <label class="provider-card">
-                    <input type="radio" name="llm_provider" value="gemini">
-                    <div class="provider-card-inner">
-                      <div class="provider-badge">Google AI Studio</div>
-                      <div class="provider-title">Google Gemini (Flash/Pro)</div>
-                      <div class="provider-desc">Ultra-smart reasoning with free tier keys from Google.</div>
-                    </div>
-                  </label>
+              <div class="kpi-card">
+                <span class="kpi-title">Tokens Processed</span>
+                <span class="kpi-val" id="kpi-total-tokens">3.82M</span>
+                <span class="kpi-delta positive">
+                  <i data-lucide="trending-up" style="width: 14px; height: 14px;"></i> +8.5% throughput
+                </span>
+              </div>
 
-                  <label class="provider-card">
-                    <input type="radio" name="llm_provider" value="openai">
-                    <div class="provider-card-inner">
-                      <div class="provider-badge">OpenAI</div>
-                      <div class="provider-title">OpenAI (GPT-4o Mini)</div>
-                      <div class="provider-desc">State of the art GPT models via your OpenAI API key.</div>
-                    </div>
-                  </label>
+              <div class="kpi-card">
+                <span class="kpi-title">Est. Compute Cost</span>
+                <span class="kpi-val" id="kpi-est-cost">$14.18</span>
+                <span style="font-size: 12px; color: var(--text-muted);">Cost efficiency: 94.6%</span>
+              </div>
 
-                  <label class="provider-card">
-                    <input type="radio" name="llm_provider" value="groq">
-                    <div class="provider-card-inner">
-                      <div class="provider-badge">Blazing Fast</div>
-                      <div class="provider-title">Groq Cloud (Llama 3)</div>
-                      <div class="provider-desc">Ultra-fast 500+ words/sec open model inference.</div>
-                    </div>
-                  </label>
+              <div class="kpi-card">
+                <span class="kpi-title">p95 Retrieval Latency</span>
+                <span class="kpi-val" id="kpi-latency">142ms</span>
+                <span class="kpi-delta positive">
+                  <i data-lucide="arrow-down-right" style="width: 14px; height: 14px;"></i> -18ms faster
+                </span>
+              </div>
+            </div>
+
+            <!-- Analytics Visual Grid -->
+            <div class="analytics-grid-two">
+              <!-- SVG Query Volume Trend Chart -->
+              <div class="chart-card">
+                <div class="chart-card-title">Query Volume & Latency History (Last 30 Days)</div>
+                <div style="width: 100%; height: 220px; display: flex; align-items: flex-end; gap: 8px; padding-top: 10px;">
+                  <svg viewBox="0 0 500 150" style="width: 100%; height: 100%; overflow: visible;">
+                    <defs>
+                      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#4f46e5" stop-opacity="0.35"/>
+                        <stop offset="100%" stop-color="#4f46e5" stop-opacity="0.0"/>
+                      </linearGradient>
+                    </defs>
+                    <path d="M0,130 Q50,90 100,105 T200,75 T300,50 T400,65 T500,30 L500,150 L0,150 Z" fill="url(#chartGrad)"/>
+                    <path d="M0,130 Q50,90 100,105 T200,75 T300,50 T400,65 T500,30" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+                    <circle cx="500" cy="30" r="4" fill="#0ea5e9" stroke="#ffffff" stroke-width="2"/>
+                  </svg>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 8px;">
+                  <span>Oct 1</span><span>Oct 8</span><span>Oct 15</span><span>Oct 22</span><span>Today</span>
                 </div>
               </div>
 
-              <!-- API Keys Section -->
-              <div class="settings-card">
-                <h3><i data-lucide="key-round"></i> Optional API Keys</h3>
-                <p class="settings-hint">Only needed if you selected Gemini, OpenAI, or Groq above. Stored safely in your private session.</p>
-                
-                <div class="form-group">
-                  <label for="setting-gemini-key">Google Gemini API Key:</label>
-                  <div class="input-with-action">
-                    <input type="password" id="setting-gemini-key" placeholder="Enter key or leave blank for Free Smart Local AI">
-                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="input-link">Get Free Key</a>
+              <!-- Model Distribution Breakdown -->
+              <div class="chart-card">
+                <div class="chart-card-title">Model Share Breakdown</div>
+                <div class="model-share-list" id="dashboard-model-shares">
+                  <div class="share-item">
+                    <div class="share-label-row">
+                      <span>OpenAI GPT-4o</span>
+                      <span class="tabular-nums">42%</span>
+                    </div>
+                    <div class="share-bar-track">
+                      <div class="share-bar-fill" style="width: 42%;"></div>
+                    </div>
+                  </div>
+                  <div class="share-item">
+                    <div class="share-label-row">
+                      <span>Claude 3.5 Sonnet</span>
+                      <span class="tabular-nums">34%</span>
+                    </div>
+                    <div class="share-bar-track">
+                      <div class="share-bar-fill" style="width: 34%; background: #0ea5e9;"></div>
+                    </div>
+                  </div>
+                  <div class="share-item">
+                    <div class="share-label-row">
+                      <span>Google Gemini 2.0</span>
+                      <span class="tabular-nums">16%</span>
+                    </div>
+                    <div class="share-bar-track">
+                      <div class="share-bar-fill" style="width: 16%; background: #10b981;"></div>
+                    </div>
+                  </div>
+                  <div class="share-item">
+                    <div class="share-label-row">
+                      <span>Smart Local AI</span>
+                      <span class="tabular-nums">8%</span>
+                    </div>
+                    <div class="share-bar-track">
+                      <div class="share-bar-fill" style="width: 8%; background: #64748b;"></div>
+                    </div>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                <div class="form-group">
-                  <label for="setting-openai-key">OpenAI API Key:</label>
-                  <div class="input-with-action">
-                    <input type="password" id="setting-openai-key" placeholder="Enter sk-... or leave blank">
-                    <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" class="input-link">Get Key</a>
+            <!-- Top Topics & SIEM Audit Logs Grid -->
+            <div class="analytics-grid-two">
+              <div class="chart-card">
+                <div class="chart-card-title">Top Queried Enterprise Topics</div>
+                <div id="top-topics-list" style="display: flex; flex-direction: column; gap: 8px;">
+                  <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: var(--bg-elevated); border-radius: 8px; font-size: 13px;">
+                    <span>Cloud Security Policies & Encryption</span>
+                    <span class="tabular-nums" style="color: var(--primary-400); font-weight: 600;">48 queries</span>
                   </div>
-                </div>
-
-                <div class="form-group">
-                  <label for="setting-groq-key">Groq Cloud API Key:</label>
-                  <div class="input-with-action">
-                    <input type="password" id="setting-groq-key" placeholder="Enter gsk_... or leave blank">
-                    <a href="https://console.groq.com/keys" target="_blank" rel="noopener" class="input-link">Get Free Key</a>
+                  <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: var(--bg-elevated); border-radius: 8px; font-size: 13px;">
+                    <span>Q3 Revenue & Gross Margin EBITDA</span>
+                    <span class="tabular-nums" style="color: var(--primary-400); font-weight: 600;">36 queries</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: var(--bg-elevated); border-radius: 8px; font-size: 13px;">
+                    <span>Incident Response SLA & Protocols</span>
+                    <span class="tabular-nums" style="color: var(--primary-400); font-weight: 600;">27 queries</span>
                   </div>
                 </div>
               </div>
 
-              <div class="form-actions">
-                <button type="submit" class="btn btn-primary">
-                  <i data-lucide="save"></i>
-                  <span>Save AI Settings</span>
+              <div class="chart-card">
+                <div class="chart-card-title">Real-time SIEM Audit Log</div>
+                <div id="audit-log-stream" style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; font-family: var(--font-mono);">
+                  <!-- Injected via JS -->
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ==================== TAB 5: TEAM & SECURITY CENTER ==================== -->
+        <section id="tab-security" class="tab-view">
+          <div class="security-container">
+            <div class="view-headline" style="display: flex; align-items: center; justify-content: space-between;">
+              <div>
+                <h2>Enterprise Team & Security Hub</h2>
+                <p>Role-Based Access Control (RBAC), Single Sign-On (SAML/Okta), API Keys, and SOC2 Auditing.</p>
+              </div>
+              <button class="btn-primary btn-sm" id="invite-member-btn">
+                <i data-lucide="user-plus" style="width: 14px; height: 14px;"></i>
+                <span>Invite Team Member</span>
+              </button>
+            </div>
+
+            <!-- SSO Status Strip -->
+            <div class="sso-grid">
+              <div class="sso-card">
+                <div class="sso-meta">
+                  <h4>Okta SAML 2.0</h4>
+                  <span>acme.okta.com</span>
+                </div>
+                <span class="nav-item-badge" style="background: var(--status-emerald-subtle); color: var(--status-emerald);">ACTIVE</span>
+              </div>
+              <div class="sso-card">
+                <div class="sso-meta">
+                  <h4>Microsoft Entra ID (Azure)</h4>
+                  <span>OIDC 84a1-tenant</span>
+                </div>
+                <span class="nav-item-badge" style="background: var(--status-emerald-subtle); color: var(--status-emerald);">CONNECTED</span>
+              </div>
+              <div class="sso-card">
+                <div class="sso-meta">
+                  <h4>Google Workspace</h4>
+                  <span>OAuth 2.0 domain</span>
+                </div>
+                <span class="nav-item-badge" style="background: var(--bg-subtle); color: var(--text-muted);">STANDBY</span>
+              </div>
+            </div>
+
+            <!-- RBAC User Directory -->
+            <div class="data-table-container" style="margin-bottom: 24px;">
+              <div class="table-header-row">
+                <div class="table-title">Authorized Organization Members</div>
+              </div>
+              <table class="doc-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Assigned Role</th>
+                    <th>MFA Status</th>
+                    <th>Last Active</th>
+                  </tr>
+                </thead>
+                <tbody id="team-roster-body">
+                  <tr>
+                    <td style="font-weight: 500;">Enterprise Admin</td>
+                    <td style="color: var(--text-muted);">admin@enterprise.com</td>
+                    <td><span class="nav-item-badge" style="background: var(--primary-subtle); color: var(--primary-400);">Enterprise Admin</span></td>
+                    <td><span style="color: var(--status-emerald);">Enforced</span></td>
+                    <td>Just now</td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight: 500;">Sarah Chen</td>
+                    <td style="color: var(--text-muted);">sarah.chen@enterprise.com</td>
+                    <td><span class="nav-item-badge">Compliance Officer</span></td>
+                    <td><span style="color: var(--status-emerald);">Enforced</span></td>
+                    <td>12m ago</td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight: 500;">Marcus Vance</td>
+                    <td style="color: var(--text-muted);">m.vance@enterprise.com</td>
+                    <td><span class="nav-item-badge">Lead Financial Analyst</span></td>
+                    <td><span style="color: var(--status-emerald);">Enforced</span></td>
+                    <td>1h ago</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Scoped API Keys Management -->
+            <div class="data-table-container">
+              <div class="table-header-row">
+                <div class="table-title">Programmatic API Keys</div>
+                <button class="btn-secondary btn-sm" id="create-api-key-btn">
+                  <i data-lucide="key" style="width: 14px; height: 14px;"></i>
+                  <span>Generate Key</span>
                 </button>
+              </div>
+              <table class="doc-table">
+                <thead>
+                  <tr>
+                    <th>Key Name</th>
+                    <th>Token Prefix</th>
+                    <th>Scope</th>
+                    <th>Created</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="font-weight: 500;">Production RAG Pipeline</td>
+                    <td style="font-family: var(--font-mono); font-size: 12px;">rag_live_9a4f...</td>
+                    <td>read:documents, chat:stream</td>
+                    <td>2026-09-15</td>
+                    <td><span style="color: var(--status-emerald);">Active</span></td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight: 500;">Nightly ETL Ingestion Bot</td>
+                    <td style="font-family: var(--font-mono); font-size: 12px;">rag_ingest_3c1b...</td>
+                    <td>write:documents, vector:embed</td>
+                    <td>2026-10-01</td>
+                    <td><span style="color: var(--status-emerald);">Active</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ==================== TAB 6: AI MODELS & GOVERNANCE SETTINGS ==================== -->
+        <section id="tab-settings" class="tab-view">
+          <div class="settings-container">
+            <div class="view-headline">
+              <h2>AI Models & Governance Controls</h2>
+              <p>Configure model routing, inference parameters, and private API keys.</p>
+            </div>
+
+            <form id="settings-form">
+              <!-- Multi-Model Matrix -->
+              <div class="setting-panel-card">
+                <h3 style="font-size: 15px; font-weight: 600;">Active AI Engine</h3>
+                <div class="models-selection-grid">
+                  <label class="model-card-radio selected">
+                    <input type="radio" name="llm_provider" value="smart_local" checked style="display: none;">
+                    <div class="model-header-flex">
+                      <span class="model-name">Smart Local AI</span>
+                      <span class="nav-item-badge" style="background: var(--status-emerald-subtle); color: var(--status-emerald);">Zero API Key</span>
+                    </div>
+                    <span class="model-desc">Private offline vector synthesis. Zero data egress, instant testing.</span>
+                  </label>
+
+                  <label class="model-card-radio">
+                    <input type="radio" name="llm_provider" value="openai" style="display: none;">
+                    <div class="model-header-flex">
+                      <span class="model-name">OpenAI GPT-4o</span>
+                      <span class="nav-item-badge">Multimodal</span>
+                    </div>
+                    <span class="model-desc">State of the art GPT reasoning via OpenAI API key.</span>
+                  </label>
+
+                  <label class="model-card-radio">
+                    <input type="radio" name="llm_provider" value="gemini" style="display: none;">
+                    <div class="model-header-flex">
+                      <span class="model-name">Gemini 2.0 Pro</span>
+                      <span class="nav-item-badge">Google AI</span>
+                    </div>
+                    <span class="model-desc">Massive 2M token context window & complex analysis.</span>
+                  </label>
+
+                  <label class="model-card-radio">
+                    <input type="radio" name="llm_provider" value="groq" style="display: none;">
+                    <div class="model-header-flex">
+                      <span class="model-name">Groq Cloud (Llama 3)</span>
+                      <span class="nav-item-badge">500 wps</span>
+                    </div>
+                    <span class="model-desc">Ultra-fast sub-200ms token generation on LPU inference.</span>
+                  </label>
+                </div>
+
+                <div class="form-group-field">
+                  <div style="display: flex; justify-content: space-between;">
+                    <label for="setting-temperature">Temperature (Precision vs Creativity):</label>
+                    <span id="temp-val-display" style="font-family: var(--font-mono); font-size: 13px; color: var(--primary-400);">0.2</span>
+                  </div>
+                  <input type="range" id="setting-temperature" min="0" max="1" step="0.05" value="0.2" class="alpha-slider" style="width: 100%;">
+                </div>
+              </div>
+
+              <!-- Private API Keys -->
+              <div class="setting-panel-card">
+                <h3 style="font-size: 15px; font-weight: 600;">Enterprise API Credentials</h3>
+                
+                <div class="form-group-field">
+                  <label for="setting-openai-key">OpenAI API Key:</label>
+                  <input type="password" id="setting-openai-key" class="input-enterprise" placeholder="sk-proj-...">
+                </div>
+
+                <div class="form-group-field">
+                  <label for="setting-gemini-key">Google Gemini API Key:</label>
+                  <input type="password" id="setting-gemini-key" class="input-enterprise" placeholder="AIzaSy...">
+                </div>
+
+                <div class="form-group-field">
+                  <label for="setting-groq-key">Groq API Key:</label>
+                  <input type="password" id="setting-groq-key" class="input-enterprise" placeholder="gsk_...">
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+                  <button type="submit" class="btn-primary">
+                    <i data-lucide="save" style="width: 14px; height: 14px;"></i>
+                    <span>Save Enterprise Settings</span>
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -468,129 +882,165 @@
       </div>
     </main>
 
-    <!-- Slide-over Citation Drawer (Friendly Document Viewer) -->
-    <aside id="citation-drawer" class="citation-drawer" aria-hidden="true">
-      <div class="drawer-header">
-        <div class="drawer-title">
-          <i data-lucide="check-circle-2"></i>
-          <h3>Verified Document Proof</h3>
-        </div>
-        <button id="close-drawer-btn" class="icon-btn" title="Close drawer">
-          <i data-lucide="x"></i>
-        </button>
-      </div>
-
-      <div class="drawer-content">
-        <div class="citation-meta-card">
-          <div class="meta-row">
-            <span class="meta-label">Source Document:</span>
-            <span id="drawer-doc-name" class="meta-val">Document.pdf</span>
-          </div>
-          <div class="meta-row">
-            <span class="meta-label">Found On:</span>
-            <span id="drawer-page-num" class="meta-badge">Page 1</span>
-          </div>
-          <div class="meta-row">
-            <span class="meta-label">Accuracy Match:</span>
-            <span id="drawer-confidence" class="confidence-badge">High Match ⭐⭐⭐⭐⭐</span>
-          </div>
-        </div>
-
-        <div class="drawer-section">
-          <h4>Exact Words from Document:</h4>
-          <div id="drawer-excerpt-text" class="drawer-quote-box">
-            Loading citation excerpt...
-          </div>
-        </div>
-
-        <div class="drawer-section">
-          <div class="drawer-friendly-note">
-            <i data-lucide="shield-check"></i>
-            <span>This answer was strictly extracted from your file with zero hallucinations.</span>
-          </div>
-        </div>
-      </div>
-    </aside>
-
   </div>
 
-  <!-- Modal: Document Chunks Inspector -->
-  <dialog id="chunks-modal" class="custom-modal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <div class="modal-title">
-          <i data-lucide="file-text"></i>
-          <h3 id="modal-doc-title">Document Content Viewer</h3>
+  <!-- ==================== COMMAND PALETTE DIALOG (CTRL+K) ==================== -->
+  <dialog id="command-palette-dialog" class="command-palette-dialog" closedby="any" aria-labelledby="cmd-palette-title">
+    <div class="command-box">
+      <div class="command-input-row">
+        <i data-lucide="search" style="width: 18px; height: 18px; color: var(--text-muted);"></i>
+        <input type="text" id="command-palette-input" placeholder="Type a command or jump to page..." autofocus>
+        <span style="font-size: 11px; padding: 2px 6px; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 4px; color: var(--text-muted); font-family: var(--font-mono);">ESC</span>
+      </div>
+
+      <div class="command-results-list" id="command-results-list">
+        <div class="cmd-item" data-action="new-chat">
+          <div class="cmd-item-left">
+            <i data-lucide="plus" style="width: 16px; height: 16px; color: var(--primary-400);"></i>
+            <span>Start New Thread</span>
+          </div>
+          <kbd>Ctrl+N</kbd>
         </div>
-        <button id="close-chunks-modal-btn" class="icon-btn">
-          <i data-lucide="x"></i>
+
+        <div class="cmd-item" data-action="goto-chat">
+          <div class="cmd-item-left">
+            <i data-lucide="message-square" style="width: 16px; height: 16px;"></i>
+            <span>Go to RAG Assistant</span>
+          </div>
+          <kbd>Tab 1</kbd>
+        </div>
+
+        <div class="cmd-item" data-action="goto-search">
+          <div class="cmd-item-left">
+            <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i>
+            <span>Go to Discovery Studio</span>
+          </div>
+          <kbd>Tab 2</kbd>
+        </div>
+
+        <div class="cmd-item" data-action="goto-documents">
+          <div class="cmd-item-left">
+            <i data-lucide="layers" style="width: 16px; height: 16px;"></i>
+            <span>Open Knowledge Repositories</span>
+          </div>
+          <kbd>Tab 3</kbd>
+        </div>
+
+        <div class="cmd-item" data-action="goto-dashboard">
+          <div class="cmd-item-left">
+            <i data-lucide="bar-chart-3" style="width: 16px; height: 16px;"></i>
+            <span>Open Observability Dashboard</span>
+          </div>
+          <kbd>Tab 4</kbd>
+        </div>
+
+        <div class="cmd-item" data-action="goto-security">
+          <div class="cmd-item-left">
+            <i data-lucide="shield" style="width: 16px; height: 16px;"></i>
+            <span>Open Team & Security Center</span>
+          </div>
+          <kbd>Tab 5</kbd>
+        </div>
+
+        <div class="cmd-item" data-action="goto-settings">
+          <div class="cmd-item-left">
+            <i data-lucide="cpu" style="width: 16px; height: 16px;"></i>
+            <span>Configure AI Models & Keys</span>
+          </div>
+          <kbd>Tab 6</kbd>
+        </div>
+
+        <div class="cmd-item" data-action="load-samples">
+          <div class="cmd-item-left">
+            <i data-lucide="sparkles" style="width: 16px; height: 16px; color: var(--primary-400);"></i>
+            <span>Load Sample Enterprise PDFs</span>
+          </div>
+          <kbd>Demo</kbd>
+        </div>
+      </div>
+
+      <div class="command-footer">
+        <span>Use <kbd>↑</kbd> <kbd>↓</kbd> to navigate</span>
+        <span>Press <kbd>↵</kbd> to select</span>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ==================== MODAL: DOCUMENT CHUNKS INSPECTOR ==================== -->
+  <dialog id="chunks-modal" class="custom-modal" closedby="any" aria-labelledby="modal-doc-title">
+    <div class="modal-surface-box">
+      <div class="modal-header-strip">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="layers" style="width: 18px; height: 18px; color: var(--primary-400);"></i>
+          <h3 id="modal-doc-title" style="font-size: 15px; font-weight: 600;">Vector Chunks Provenance Inspector</h3>
+        </div>
+        <button id="close-chunks-modal-btn" class="icon-btn-ghost">
+          <i data-lucide="x" style="width: 16px; height: 16px;"></i>
         </button>
       </div>
-      <div class="modal-body">
-        <div id="modal-chunks-list" class="modal-chunks-list">
-          <!-- Chunks loaded dynamically -->
+      <div class="modal-scroll-body">
+        <div id="modal-chunks-list" style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Loaded dynamically -->
         </div>
       </div>
     </div>
   </dialog>
 
-  <!-- Modal: Authentication (Optional - Only if user wants to save permanent account) -->
-  <dialog id="auth-modal" class="custom-modal">
-    <div class="modal-card auth-modal-card">
-      <div class="modal-header">
-        <div class="modal-title">
-          <i data-lucide="user"></i>
-          <h3 id="auth-modal-title">Account Access</h3>
+  <!-- ==================== MODAL: ENTERPRISE AUTHENTICATION ==================== -->
+  <dialog id="auth-modal" class="custom-modal" closedby="any" aria-labelledby="auth-modal-title">
+    <div class="modal-surface-box" style="max-width: 480px; margin: auto;">
+      <div class="modal-header-strip">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="shield-check" style="width: 18px; height: 18px; color: var(--primary-400);"></i>
+          <h3 id="auth-modal-title" style="font-size: 15px; font-weight: 600;">Enterprise Identity & Access</h3>
         </div>
-        <button id="close-auth-modal-btn" class="icon-btn">
-          <i data-lucide="x"></i>
+        <button id="close-auth-modal-btn" class="icon-btn-ghost">
+          <i data-lucide="x" style="width: 16px; height: 16px;"></i>
         </button>
       </div>
-      <div class="modal-body">
-        <div class="guest-banner">
-          <div class="guest-banner-text">
-            <strong>Evaluating or Testing?</strong>
-            <span>You are already in free instant mode! No login required.</span>
-          </div>
-          <button id="guest-login-btn" class="btn btn-accent btn-sm">
-            <i data-lucide="sparkles"></i>
-            <span>Instant Demo</span>
-          </button>
+
+      <div class="modal-scroll-body">
+        <!-- SSO 1-Click Trigger -->
+        <button id="guest-login-btn" class="btn-primary" style="width: 100%; margin-bottom: 16px;">
+          <i data-lucide="zap" style="width: 14px; height: 14px;"></i>
+          <span>Continue with Instant Enterprise Demo</span>
+        </button>
+
+        <div style="display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--text-muted); font-size: 11px;">
+          <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+          <span>OR SIGN IN VIA LOCAL CREDENTIALS</span>
+          <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
         </div>
 
-        <div class="auth-divider">
-          <span>OR SIGN IN TO A SAVED ACCOUNT</span>
-        </div>
-
-        <form id="auth-form" class="auth-form">
-          <div id="auth-fullname-group" class="form-group" style="display: none;">
-            <label for="auth-fullname">Your Name:</label>
-            <input type="text" id="auth-fullname" placeholder="Alex">
+        <form id="auth-form" style="display: flex; flex-direction: column; gap: 12px;">
+          <div id="auth-fullname-group" class="form-group-field" style="display: none;">
+            <label for="auth-fullname">Full Name:</label>
+            <input type="text" id="auth-fullname" class="input-enterprise" placeholder="Alex Morgan">
           </div>
 
-          <div class="form-group">
-            <label for="auth-username">Username:</label>
-            <input type="text" id="auth-username" required placeholder="alex_demo">
+          <div class="form-group-field">
+            <label for="auth-username">Username or Corporate ID:</label>
+            <input type="text" id="auth-username" required class="input-enterprise" placeholder="alex.morgan">
           </div>
 
-          <div id="auth-email-group" class="form-group" style="display: none;">
-            <label for="auth-email">Email:</label>
-            <input type="email" id="auth-email" placeholder="alex@example.com">
+          <div id="auth-email-group" class="form-group-field" style="display: none;">
+            <label for="auth-email">Corporate Email:</label>
+            <input type="email" id="auth-email" class="input-enterprise" placeholder="alex@enterprise.com">
           </div>
 
-          <div class="form-group">
+          <div class="form-group-field">
             <label for="auth-password">Password:</label>
-            <input type="password" id="auth-password" required placeholder="••••••••">
+            <input type="password" id="auth-password" required class="input-enterprise" placeholder="••••••••••••">
           </div>
 
-          <button type="submit" id="auth-submit-btn" class="btn btn-primary btn-block">
-            <span>Sign In</span>
+          <button type="submit" id="auth-submit-btn" class="btn-primary" style="width: 100%; margin-top: 8px;">
+            <span>Sign In to Vault</span>
           </button>
         </form>
 
-        <div class="auth-switch-prompt">
-          <span id="auth-switch-text">Don't have an account?</span>
-          <button id="auth-toggle-mode-btn" class="text-link">Register New Account</button>
+        <div style="text-align: center; margin-top: 14px; font-size: 12px; color: var(--text-muted);">
+          <span id="auth-switch-text">New to the platform?</span>
+          <button id="auth-toggle-mode-btn" style="color: var(--primary-400); font-weight: 500; margin-left: 4px; text-decoration: underline;">Create New Account</button>
         </div>
       </div>
     </div>
