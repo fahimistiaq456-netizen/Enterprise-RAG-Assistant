@@ -100,33 +100,34 @@ window.ChatManager = {
         <div class="enterprise-logo-orb">
           <i data-lucide="sparkles" style="width: 24px; height: 24px;"></i>
         </div>
-        <h2>Enterprise Knowledge Intelligence</h2>
-        <p>Synthesizing cross-document truth with verified citations, inspectable reasoning steps, and zero external hallucination.</p>
+        <span class="welcome-eyebrow"><span class="welcome-status-dot"></span> NEXUS KNOWLEDGE ASSISTANT</span>
+        <h2>Answers from the knowledge you trust</h2>
+        <p>Ask across your indexed documents. Get a clear answer with source citations you can open and verify.</p>
         
         <div class="prompt-vault-grid">
-          <div class="prompt-card" data-prompt="What are the cloud security password rules, session timeouts, and encryption standards?">
-            <span class="prompt-tag">Security & Compliance</span>
-            <span class="prompt-text">"Analyze password rules and session timeouts"</span>
-            <span class="prompt-meta">Cross-references Acme Cloud Security Policy</span>
-          </div>
+          <button type="button" class="prompt-card" data-prompt="What are the cloud security password rules, session timeouts, and encryption standards?">
+            <span class="prompt-tag">Security</span>
+            <span class="prompt-text">What are our password and session rules?</span>
+            <span class="prompt-meta">Explore the cloud security policy</span>
+          </button>
 
-          <div class="prompt-card" data-prompt="What were the Q3 revenue, gross margin, ARR growth rate, and financial risks?">
-            <span class="prompt-tag">Financial Audit</span>
-            <span class="prompt-text">"Audit Q3 revenue margins and financial risks"</span>
-            <span class="prompt-meta">Pulls from Strategic Financial Report</span>
-          </div>
+          <button type="button" class="prompt-card" data-prompt="What were the Q3 revenue, gross margin, ARR growth rate, and financial risks?">
+            <span class="prompt-tag">Finance</span>
+            <span class="prompt-text">How did revenue and gross margin perform?</span>
+            <span class="prompt-meta">Review the Q3 financial report</span>
+          </button>
 
-          <div class="prompt-card" data-prompt="How fast does the emergency incident response team react to severity 1 events?">
-            <span class="prompt-tag">Operations SLA</span>
-            <span class="prompt-text">"Review emergency incident response SLAs"</span>
-            <span class="prompt-meta">Grounded in disaster recovery protocols</span>
-          </div>
+          <button type="button" class="prompt-card" data-prompt="How fast does the emergency incident response team react to severity 1 events?">
+            <span class="prompt-tag">Operations</span>
+            <span class="prompt-text">What is the response target for a severity 1 incident?</span>
+            <span class="prompt-meta">Find incident response commitments</span>
+          </button>
 
-          <div class="prompt-card" data-prompt="Generate an executive summary of all uploaded documents highlighting key risks and compliance items.">
-            <span class="prompt-tag">Executive Synthesis</span>
-            <span class="prompt-text">"Generate an executive summary of all files"</span>
-            <span class="prompt-meta">Full multi-document synthesis</span>
-          </div>
+          <button type="button" class="prompt-card" data-prompt="Generate an executive summary of all uploaded documents highlighting key risks and compliance items.">
+            <span class="prompt-tag">Overview</span>
+            <span class="prompt-text">Summarize the key risks across my documents</span>
+            <span class="prompt-meta">Compare findings across the knowledge base</span>
+          </button>
         </div>
       </div>
     `;

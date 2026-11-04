@@ -22,7 +22,10 @@ async def lifespan(app: FastAPI):
     init_db()
     # Ensure sample documents directory exists
     sample_dir = BASE_DIR / "sample_documents"
-    sample_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        sample_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
     yield
 
 
@@ -70,7 +73,10 @@ def health_check():
 
 # Static Assets & SPA routing
 static_dir = Path(__file__).resolve().parent / "static"
-static_dir.mkdir(parents=True, exist_ok=True)
+try:
+    static_dir.mkdir(parents=True, exist_ok=True)
+except OSError:
+    pass
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 

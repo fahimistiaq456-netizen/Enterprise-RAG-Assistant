@@ -124,9 +124,10 @@ docker-compose logs -f
 ## ☁️ Deploy Online So Employers Can Try It
 
 See **[DEPLOYMENT.md](DEPLOYMENT.md)** for detailed guides on:
-1. **Hugging Face Spaces** (Free 16GB RAM Docker hosting with public URL)
-2. **Render.com** (Free Docker Web Service)
-3. **Railway.app** (1-Click Deploy)
+1. **Vercel** (Serverless + Edge CDN, zero-config FastAPI support)
+2. **Hugging Face Spaces** (Free 16GB RAM Docker hosting with public URL)
+3. **Render.com** (Free Docker Web Service)
+4. **Railway.app** (1-Click Deploy)
 
 ### Employer 5-Second Test Flow:
 1. Open the public web link.

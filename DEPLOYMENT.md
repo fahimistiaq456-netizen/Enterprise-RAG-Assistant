@@ -94,7 +94,55 @@ Render allows you to deploy Docker containers directly from a GitHub repository.
 
 ---
 
-## 🐳 Option 4: Local or VPS Docker Deployment
+## ▲ Option 4: Vercel (Serverless Cloud Deployment)
+
+Nexus RAG includes native Vercel configuration (`vercel.json` and `api/index.py`), optimized for serverless execution and instant edge CDN static delivery.
+
+### Method A: Deploy via Vercel Web Dashboard (Recommended)
+
+1. **Push your latest changes to GitHub**:
+   ```bash
+   git add .
+   git commit -m "Configure project for Vercel deployment"
+   git push origin main
+   ```
+
+2. **Import into Vercel**:
+   - Go to [vercel.com/new](https://vercel.com/new) and log in with GitHub.
+   - Select your **Enterprise-RAG-Assistant** repository.
+   - In **Project Settings**:
+     - **Framework Preset**: Other (automatically reads `vercel.json`).
+     - **Root Directory**: `./` (leave default).
+
+3. **Configure Environment Variables**:
+   Under **Environment Variables**, add:
+   - `SECRET_KEY`: Any secure random 32+ character string (e.g. `enterprise_super_secret_jwt_key_2026`).
+   - `GEMINI_API_KEY`: *(Optional)* Your Gemini API Key from Google AI Studio. (If omitted, the built-in local smart synthesizer works automatically).
+   - `APP_ENV`: `production`
+
+4. **Click Deploy**:
+   - Vercel will build the serverless functions and edge static assets.
+   - You will get a live URL: `https://your-project-name.vercel.app`.
+
+---
+
+### Method B: Deploy via Vercel CLI
+
+If you have Node.js installed, you can deploy in one command directly from your terminal:
+
+```bash
+# Preview deployment
+npx vercel
+
+# Production deployment
+npx vercel --prod
+```
+
+Follow the interactive prompts to link your project and deploy.
+
+---
+
+## 🐳 Option 5: Local or VPS Docker Deployment
 
 If deploying to your own VPS (Ubuntu/Debian on AWS EC2, DigitalOcean, or Hetzner):
 

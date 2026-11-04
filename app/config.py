@@ -3,10 +3,21 @@ from pathlib import Path
 
 # Base Paths
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
-UPLOAD_DIR = DATA_DIR / "uploads"
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+# Support serverless platforms like Vercel where only /tmp is writable
+IS_SERVERLESS = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+if IS_SERVERLESS:
+    DATA_DIR = Path("/tmp/data")
+    UPLOAD_DIR = DATA_DIR / "uploads"
+else:
+    DATA_DIR = BASE_DIR / "data"
+    UPLOAD_DIR = DATA_DIR / "uploads"
+
+try:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+except OSError:
+    pass
 
 # App Configuration
 APP_NAME = os.getenv("APP_NAME", "Nexus RAG - Enterprise Assistant")

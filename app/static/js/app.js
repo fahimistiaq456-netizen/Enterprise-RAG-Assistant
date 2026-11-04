@@ -140,9 +140,25 @@ function setupTabs() {
 function setupSidebar() {
   const sidebar = document.getElementById('sidebar');
   const toggleBtn = document.getElementById('sidebar-toggle-btn');
+  const mobileQuery = window.matchMedia('(max-width: 768px)');
+
+  function closeMobileSidebar() {
+    if (!sidebar) return;
+    sidebar.classList.remove('mobile-open');
+    document.body.classList.remove('mobile-sidebar-open');
+  }
 
   if (toggleBtn && sidebar) {
     toggleBtn.addEventListener('click', () => {
+      if (mobileQuery.matches) {
+        sidebar.classList.remove('collapsed');
+        const isOpen = sidebar.classList.toggle('mobile-open');
+        document.body.classList.toggle('mobile-sidebar-open', isOpen);
+        return;
+      }
+
+      sidebar.classList.remove('mobile-open');
+      document.body.classList.remove('mobile-sidebar-open');
       sidebar.classList.toggle('collapsed');
       const icon = toggleBtn.querySelector('i');
       if (icon) {
@@ -155,6 +171,33 @@ function setupSidebar() {
       }
     });
   }
+
+  if (sidebar) {
+    sidebar.querySelectorAll('.nav-menu-item').forEach(item => {
+      item.addEventListener('click', () => {
+        if (mobileQuery.matches) closeMobileSidebar();
+      });
+    });
+
+    sidebar.querySelector('#new-chat-btn')?.addEventListener('click', () => {
+      if (mobileQuery.matches) closeMobileSidebar();
+    });
+  }
+
+  document.addEventListener('click', (event) => {
+    if (mobileQuery.matches && sidebar?.classList.contains('mobile-open') &&
+        !event.target.closest('#sidebar') && !event.target.closest('#sidebar-toggle-btn')) {
+      closeMobileSidebar();
+    }
+  });
+
+  window.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && mobileQuery.matches) closeMobileSidebar();
+  });
+
+  window.addEventListener('resize', () => {
+    if (!mobileQuery.matches) closeMobileSidebar();
+  });
 }
 
 /* --------------------------------------------------------------------------
