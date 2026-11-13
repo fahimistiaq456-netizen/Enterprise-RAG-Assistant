@@ -53,7 +53,31 @@ def get_current_user(
     token: Optional[str] = Depends(get_token_from_request),
     db: Session = Depends(get_db),
 ) -> User:
-    """FastAPI dependency to retrieve the authenticated user from JWT."""
+    """Return the authenticated user, or bypass auth when AUTH_DISABLED.
+
+    When the environment variable ``AUTH_DISABLED`` is true we skip JWT validation
+    and return a demo guest user that always exists. This enables the front‑end
+    to load without requiring a bootstrap user, perfect for a public interview
+    demo.
+    """
+    from app.config import AUTH_DISABLED
+    if AUTH_DISABLED:
+        demo_username = "demo_guest"
+        user = db.query(User).filter(User.username == demo_username).first()
+        if not user:
+            demo_user = User(
+                username=demo_username,
+                email="demo@enterprise.io",
+                hashed_password="",
+                full_name="Demo Guest",
+                is_guest=True,
+            )
+            db.add(demo_user)
+            db.commit()
+            db.refresh(demo_user)
+            user = demo_user
+        return user
+    # Normal auth flow
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials or session expired",

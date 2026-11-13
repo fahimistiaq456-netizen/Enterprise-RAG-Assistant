@@ -26,6 +26,14 @@ DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8000"))
 
+# Demo auth override – set AUTH_DISABLED=true to skip auth for demo purposes
+AUTH_DISABLED = os.getenv("AUTH_DISABLED", "false").lower() == "true"
+APP_NAME = os.getenv("APP_NAME", "Nexus RAG - Enterprise Assistant")
+APP_ENV = os.getenv("APP_ENV", "production")
+DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+HOST = os.getenv("HOST", "0.0.0.0")
+PORT = int(os.getenv("PORT", "8000"))
+
 # Security & JWT
 SECRET_KEY = os.getenv("SECRET_KEY", "enterprise_super_secret_jwt_key_change_in_production_2026")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
